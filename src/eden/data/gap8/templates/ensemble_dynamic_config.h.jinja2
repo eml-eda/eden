@@ -1,0 +1,31 @@
+/*Template per profiling del gbt dinamico*/
+#ifndef __ENSEMBLE_DYNAMIC_CONFIG_H__
+#define __ENSEMBLE_DYNAMIC_CONFIG_H__
+//#define XSTR(x) STR(x)
+//#define STR(x) #x
+//#pragma message "The value is: " XSTR(MAX_ADAPTIVE_STEPS)
+#define THRESHOLD_LOW -{{ data.threshold }}
+#define THRESHOLD_HIGH {{ data.threshold }}
+#define THRESHOLD {{ data.threshold }}
+#define BATCH {{ data.batch }}
+#define ESTIMATOR_BATCH (BATCH*N_CLASSES)
+
+#define MAX_ADAPTIVE_STEPS (((N_ESTIMATORS + BATCH -1)/BATCH)-1)//((N_ESTIMATORS/BATCH)-1 + (N_ESTIMATORS%BATCH))
+#if PROFILING>MAX_ADAPTIVE_STEPS
+//Foresta o GBT binario
+#if N_ESTIMATORS==N_TREES
+#define LEFT_TREES  (N_TREES - (MAX_ADAPTIVE_STEPS*BATCH))
+#else // GBT
+#define LEFT_TREES  (N_TREES - (MAX_ADAPTIVE_STEPS*ESTIMATOR_BATCH))
+#endif
+#else
+#define LEFT_TREES 0
+#endif
+
+#if PROFILING<=MAX_ADAPTIVE_STEPS
+#define ITER PROFILING
+#else
+#define ITER MAX_ADAPTIVE_STEPS
+#endif 
+
+#endif //__ENSEMBLE_DYNAMIC_CONFIG_H__

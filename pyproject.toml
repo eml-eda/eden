@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+include-package-data = false
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"*" = ["*.jinja2", "*.c", "*.h", "Makefile"]
+
+[project]
+name = "eden"
+version = "0.0.1"
+authors = [
+  { name="Francesco Daghero", email="francesco.daghero@polito.it" },
+]
+description = "EDEN: Efficienct Decision Tree Ensembles"
+readme = "README.md"
+license = { file="LICENSE" }
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+]
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+testpaths = ["tests"]
+
+[project.urls]
+"Homepage" = "https://github.com/eml-eda/eden/"
+"Bug Tracker" = "https://github.com/eml-eda/eden/issues"
+
+[tool.flake8]
+max-line-length = 88
+per-file-ignores="__init__.py:F401"
+extend-ignore = "E203,"

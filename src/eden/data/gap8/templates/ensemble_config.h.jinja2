@@ -1,0 +1,36 @@
+/*File con la configurazione di un ensemble*/
+#ifndef __ENSEMBLE_CONFIG_H__
+#define __ENSEMBLE_CONFIG_H__
+// Nuovi tipi - define 
+#define node_idx_dtype {{ data.node_idx_dtype}} 
+#define node_shift_dtype {{ data.node_shift_dtype}} 
+
+#define logit_dtype {{ data.logit_dtype }} 
+#define leaves_dtype {{ data.leaves_dtype }}
+#define feature_idx_dtype {{ data.feature_idx_dtype }} 
+#define feature_dtype {{ data.feature_dtype }}
+#define leaves_idx_dtype {{ data.leaves_idx_dtype }}
+#define threshold_dtype {{ data.threshold_dtype }}
+
+//Struttura dati 
+struct Node {
+    feature_idx_dtype feature_idx;
+    threshold_dtype threshold; // Contiene thr + leaf o leaf_idx
+    node_shift_dtype right_child;
+};
+
+// Costanti
+#define N_ESTIMATORS {{ data.n_estimators }}
+#define N_TREES {{data.n_trees}}
+#define N_CLASSES {{data.n_classes}}
+#define N_NODES {{data.n_nodes}}
+#define N_FEATURES {{data.n_features}}
+#define N_LEAVES {{data.n_leaves}}
+
+
+// Costanti parallelizzazione
+#define TREES_PER_BUFFER N_CORES
+#define BUFFER_SIZE {{ data.dim_buffer }}  /* Dimensione buffer*/
+#define BYTES_FEATURE_IDX {{ data.bytes_feature_idx }}
+#define BYTES_NODE_STRUCT {{ data.bytes_node_struct }}
+#endif //__ENSEMBLE_CONFIG_H__

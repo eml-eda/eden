@@ -1,0 +1,36 @@
+#------------------------------------
+APP              = test
+N_CORES = 8
+platform=gvsoc
+#BDIR variabile aggiunta manualmente a pmsis_rules, controlla il nome della cartella di build
+
+# App sources
+APP_SRCS         = src/$(lib)/main.c 
+APP_SRCS         += src/tree.c 
+{% if "leaves_data" not in data %}
+APP_SRCS         += src/$(lib)/gbdt.c 
+{% else %}
+APP_SRCS         += src/$(lib)/rf_multiclass.c 
+{% endif %}
+# Compiler flags
+## Headers
+APP_CFLAGS = -Iautogen
+APP_CFLAGS += -Iinclude
+APP_CFLAGS += -Istats_lib
+# Settings
+APP_CFLAGS  += -O3 -fstack-usage -DN_CORES=$(N_CORES)
+APP_CFLAGS  +=  -DSTATS=1
+#Memory Levels
+ifdef c_args
+APP_CFLAGS += $(c_args)
+endif
+# Linker flags
+# APP_LDFLAGS      = -lrvfp
+
+# Custom linker
+APP_LINK_SCRIPT  = 
+
+# Macro Defining Stack Size
+# MAIN_STACK_SIZE = 8192
+
+include $(RULES_DIR)/pmsis_rules.mk
