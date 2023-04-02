@@ -9,4 +9,4 @@ An example:
 python src/eden/gradient_boosting/grid_search/unimib.py
 ```
 Runs the grid search for the UniMiB-SHAR dataset
-The inference code can be generated automatically with the scripts under src/eden/{classifier}/inference/ with the pulpissimo toolchain sourced before run.
+The inference code can be generated automatically with the scripts under src/eden/{classifier}/inference/ with the gap8 toolchain sourced before run.
