@@ -124,6 +124,65 @@ def convert(
     use_simd: Union[bool, str] = "auto",
     output_folder: str = "eden-ensemble",
 ) -> "_EdenEnsemble":
+    """
+    Converts the input sklearn model in C
+
+    Parameters
+    ----------
+    model : Any
+        A fitted tree-based classifier from scikit-learn
+    test_data : Optional[np.ndarray], optional, shape {1, clf.n_features}
+        Test samples to write in C, should be already quantized. If None, generates a
+        single input with 0s, by default None
+    input_qbits, output_qbits : Optional[int], optional
+        bits to be used when quantizing the input/output, if None use floats, by default
+        None
+    input_data_range : Tuple[float, float], optional
+        Range (min_val, max_val) of the input values used to quantize the thresholds,
+        by default (0,0)
+    quantization_aware_training : bool, optional
+        whether the inputs of clf.fit() were integers. If True, thresholds are not
+        quantized, but we use np.ceil(thresholds) instead, by default False
+    target_architecture : str, optional, supported values {"any", "pulpissimo", "gap8"}
+        String indicating the target platform where the eden file should run,
+        by default "any"
+    leaf_store_mode : str, optional
+        String indicating whether the leaf are stored in the threshold array.
+        "Auto" infers automatically the best option.
+        Accepts {"auto", "internal", "external"}  by default "auto"
+    ensemble_structure_mode : str, optional, valid values {"struct", "array"}
+        String controlling how the eden ensemble is saved, whether using arrays
+        or a struct for the nodes, by default "struct"
+    use_simd : Union[bool, str], optional
+        Enables the use of simd instructions when available, by default "auto"
+    output_folder : str, optional
+        Path to the folder where the ensemble is dumped, by default "eden-ensemble"
+
+    Returns
+    -------
+    _EdenEnsemble
+        A dataclass storing all the information required to generate again the ensemble
+        code.
+
+    Examples
+    ________
+    >>> from sklearn.datasets import make_classification
+    >>> from sklearn.ensemble import RandomForestClassifier
+
+    >>> X, y = make_classification( random_state=0, n_classes=2, n_informative=10,
+    ... n_features=256)
+    >>> clf = RandomForestClassifier(max_depth=3, random_state=0, n_estimators=2)
+    >>> clf= clf.fit(X, y)
+    >>> test_data = np.zeros(shape=(1, X.shape[1]))
+    >>> ensemble_summary = convert(
+    ...     model=clf,
+    ...     test_data=[test_data],
+    ...     input_qbits=32,
+    ...     output_qbits=32,
+    ...     input_data_range=(np.min(X), np.max(X)),
+    ...     quantization_aware_training=False,
+    ... )
+    """
     # Model parsing
     (
         roots,
@@ -286,29 +345,32 @@ def convert(
 
 
 if __name__ == "__main__":
-    from sklearn.datasets import make_classification
-    from sklearn.ensemble import RandomForestClassifier
+    import doctest
 
-    X, y = make_classification(
-        random_state=0, n_classes=2, n_informative=10, n_features=256
-    )
-    clf = RandomForestClassifier(max_depth=3, random_state=0, n_estimators=2)
-    clf.fit(X, y)
-    test_data = np.zeros(shape=(1, X.shape[1]))
-    en = convert(
-        model=clf,
-        test_data=[test_data],
-        input_qbits=32,
-        output_qbits=32,
-        input_data_range=(np.min(X), np.max(X)),
-        quantization_aware_training=False,
-    )
-    predictions = np.asarray([t.predict_proba(test_data) for t in clf.estimators_]).sum(
-        axis=0
-    )
-    print(predictions)
+    doctest.testmod()
+    # from sklearn.datasets import make_classification
+    # from sklearn.ensemble import RandomForestClassifier
 
-    from eden._run import run
+    # X, y = make_classification(
+    #    random_state=0, n_classes=2, n_informative=10, n_features=256
+    # )
+    # clf = RandomForestClassifier(max_depth=3, random_state=0, n_estimators=2)
+    # clf.fit(X, y)
+    # test_data = np.zeros(shape=(1, X.shape[1]))
+    # en = convert(
+    #    model=clf,
+    #    test_data=[test_data],
+    #    input_qbits=32,
+    #    output_qbits=32,
+    #    input_data_range=(np.min(X), np.max(X)),
+    #    quantization_aware_training=False,
+    # )
+    # predictions = np.asarray([t.predict_proba(test_data) for t in clf.estimators_]).sum(
+    #    axis=0
+    # )
+    # print(predictions)
 
-    output = run(ensemble=en, target_folder="eden-ensemble")
-    print(output)
+    # from eden._run import run
+
+    # output = run(ensemble=en, target_folder="eden-ensemble")
+    # print(output)
