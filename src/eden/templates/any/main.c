@@ -33,7 +33,7 @@ int main() {
 
     <%include file="argmax.c"/>
     #ifdef DEBUG
-    printf("Ensemble inference output: ${"%d" if config.leaf_ctype!="float" or "classification" in config.task else "%f"}\n", pred);
+    printf("INFERENCE OUTPUT:${"%d" if config.leaf_ctype!="float" or "classification" in config.task else "%f"}\n", pred);
     #endif
     return 0;
 }

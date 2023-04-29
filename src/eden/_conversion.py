@@ -114,16 +114,16 @@ def convert(
     ## Input parameters
     input_qbits: Optional[int] = None,  # Float default
     output_qbits: Optional[int] = None,  # Float default
-    input_data_range: Optional[Tuple[float, float]] = None,
+    input_data_range: Tuple[float, float] = (0, 0),
     # Changes what quantization we should perform
-    quantization_aware_training: bool,
+    quantization_aware_training: bool = False,
     # Deployment flags
     target_architecture: str = "any",
     leaf_store_mode: str = "auto",
     ensemble_structure_mode: str = "struct",
     use_simd: Union[bool, str] = "auto",
     output_folder: str = "eden-ensemble",
-):
+) -> "_EdenEnsemble":
     # Model parsing
     (
         roots,
@@ -282,17 +282,20 @@ def convert(
     )
     # Using a dataclass to represent the ensemble
     _deploy(output_folder=output_folder, ensemble=model)
+    return model
 
 
 if __name__ == "__main__":
     from sklearn.datasets import make_classification
     from sklearn.ensemble import RandomForestClassifier
 
-    X, y = make_classification(random_state=0, n_classes=2, n_informative=10)
+    X, y = make_classification(
+        random_state=0, n_classes=2, n_informative=10, n_features=256
+    )
     clf = RandomForestClassifier(max_depth=3, random_state=0, n_estimators=2)
     clf.fit(X, y)
     test_data = np.zeros(shape=(1, X.shape[1]))
-    convert(
+    en = convert(
         model=clf,
         test_data=[test_data],
         input_qbits=32,
@@ -304,3 +307,8 @@ if __name__ == "__main__":
         axis=0
     )
     print(predictions)
+
+    from eden._run import run
+
+    output = run(ensemble=en, target_folder="eden-ensemble")
+    print(output)

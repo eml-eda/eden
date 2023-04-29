@@ -50,6 +50,8 @@ def _parse_sklearn_tree(
     leaf = base_tree.value[leaf_nodes]
     # Leaf processing
     leaf = np.squeeze(leaf)
+    if task == "regression" or task == "regression-ova":
+        leaf = leaf.reshape(-1, 1)
     # TODO: Understand how this changes depending on fitting weights
     if task == "classification":
         leaf = leaf / base_tree.weighted_n_node_samples[leaf_nodes, None]

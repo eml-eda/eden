@@ -103,7 +103,7 @@ def _ctypes_ensemble(
     )
     # Include the -2
     feature_idx_ctype = _get_ctype(
-        bits_word=_bits_to_represent(value=n_features), signed=True
+        bits_word=_bits_to_represent(value=n_features) + 1, signed=True
     )
     input_ctype = _get_ctype(bits_word=input_qbits, signed=(input_data_range[0] < 0))
 

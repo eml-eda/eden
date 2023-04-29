@@ -27,3 +27,6 @@ quantization of the tree fields.
 Finally, it generates C templates of ensemble, allowing a fast deployment at the edge.
 More info at https://github.com/eml-eda/eden.
 """
+
+from ._conversion import convert
+from ._run import run
