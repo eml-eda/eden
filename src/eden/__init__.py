@@ -30,3 +30,5 @@ More info at https://github.com/eml-eda/eden.
 
 from ._conversion import convert
 from ._run import run
+from ._quantization import quantize, dequantize
+from ._types import suggest_qtype

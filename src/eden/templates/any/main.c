@@ -1,3 +1,10 @@
+<%
+    def dequantize_str(qtype):
+      if qtype is None:
+        return ""
+      bits_frac = int(qtype.split(".")[-1])
+      return f"/{float(2**(bits_frac))}"
+%>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -33,7 +40,11 @@ int main() {
 
     <%include file="argmax.c"/>
     #ifdef DEBUG
-    printf("INFERENCE OUTPUT:${"%d" if config.leaf_ctype!="float" or "classification" in config.task else "%f"}\n", pred);
+    %if config.task=="regression":
+    printf("INFERENCE OUTPUT:%f\n", pred${dequantize_str(config.leaf_qtype)});
+    %else:
+    printf("INFERENCE OUTPUT:%d\n", pred);
+    %endif
     #endif
     return 0;
 }

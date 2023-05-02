@@ -14,7 +14,7 @@ def n_classes(request):
 @pytest.fixture(
     scope="module",
     params=[125, 256],
-    ids=["feature_idx(int8_t)", "feature_idx(in16_t)"],
+    ids=["8-bit", "16-bit"],
 )
 def n_features(request):
     return request.param

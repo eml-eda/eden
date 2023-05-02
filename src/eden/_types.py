@@ -2,6 +2,26 @@ from typing import Optional, Tuple, Union, List
 import math
 
 
+def suggest_qtype(bits: int, data_range: Tuple[float, float]) -> str:
+    """
+    Suggest a valid qtype that avoids overflow for the inputs
+
+    Parameters
+    ----------
+    bits : int
+        maximum bits to be used
+    data_range : Tuple[float, float]
+        range of the data to be quantized, in the form of (min, max)
+
+    Returns
+    -------
+    str
+        a valid qtype for eden
+    """
+    qtype = _get_qtype(bits_word=bits, data_range=data_range)
+    return qtype
+
+
 def _round_up_pow2(*, x: Union[int, float]) -> int:
     return int(math.pow(2, math.ceil(math.log(x) / math.log(2))))
 
@@ -73,7 +93,7 @@ def _get_qtype(*, bits_word: int, data_range: Tuple[float, float]) -> Optional[s
     # Minimum number of bits to represent the integer part
     bits_int = math.ceil(math.log2(bound + 1))
     assert (
-        bits_available > bits_int
+        bits_available >= bits_int
     ), f"Overflow: too few bits to represent range {data_range}"
     bits_frac = bits_available - bits_int
     qtype = f"Q{bits_int}.{bits_frac}"

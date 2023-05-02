@@ -4,7 +4,22 @@ from eden._types import _get_ctype, _get_qtype, _info_qtype, _range_of_qtype
 
 
 def quantize(data: np.ndarray, qtype: str) -> np.ndarray:
-    # TODO Check that QTYPE is valid
+    """
+    Fixed point quantization
+
+    Parameters
+    ----------
+    data : np.ndarray
+        Data to be quantized
+    qtype : str
+        Qtype to use when quantizing the data. Format q{bits_int}.{bits_frac}
+
+    Returns
+    -------
+    np.ndarray
+       The quantized data
+    """
+    # TODO Check that QTYPE is valid or auto
     _, _, bits_frac = _info_qtype(qtype=qtype)
     lower, upper = _range_of_qtype(qtype=qtype)
     data = np.copy(data)
@@ -15,6 +30,12 @@ def quantize(data: np.ndarray, qtype: str) -> np.ndarray:
     # Saturate
     data[data > upper] = upper
     data[data < lower] = lower
+    return data
+
+
+def dequantize(data: np.ndarray, qtype: str) -> np.ndarray:
+    _, _, bits_frac = _info_qtype(qtype=qtype)
+    data = data / (2**bits_frac)
     return data
 
 
@@ -32,9 +53,9 @@ def _quantize_ensemble(
         # QAT : Thresholds are already in fixed point
         if quantization_aware_training == True:
             for t in range(n_trees):
-                thresholds[t][feature_idx[t] == -2] = np.ceil(
-                    thresholds[t][feature_idx[t] == -2]
-                )
+                thresholds[t][feature_idx[t] != -2] = np.ceil(
+                    thresholds[t][feature_idx[t] != -2]
+                ).astype(int)
         else:
             # Quantization : Fxp
             for t in range(n_trees):

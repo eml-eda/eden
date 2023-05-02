@@ -33,7 +33,7 @@ def run(*, ensemble: "_EdenEnsemble", target_folder: str = "eden-ensemble"):
         if "INFERENCE OUTPUT" in row:
             inference_output = float(row.split(":")[1])
 
-    if "classification" in ensemble.task or ensemble.leaf_qtype is not None:
+    if "classification" in ensemble.task:
         inference_output = int(inference_output)
 
     # Report the output
