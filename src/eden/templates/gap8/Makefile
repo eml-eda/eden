@@ -24,22 +24,19 @@
 # N_CORES, STATS (for profiling), C_ARGS (additional c args)
 
 APP = eden
-N_CORES = 8
-STATS = 1
-C_ARGS = -DDEBUG
 # C files
 APP_SRCS = $(wildcard *.c)
 # Headers
-APP_CFLAGS = -Iinclude
+APP_CFLAGS = -I.
 
 # Settings
-APP_CFLAGS  += -O3 -fstack-usage -DN_CORES=$(N_CORES)
+APP_CFLAGS  += -O3 -fstack-usage 
 
 ifdef STATS
 APP_CFLAGS  += -DSTATS=1
 endif 
 ifdef C_ARGS
-APP_CFLAGS  += $(C_ARGS)
+APP_CFLAGS  += $(C_ARGS) -DDEBUG
 endif 
 
 include $(RULES_DIR)/pmsis_rules.mk

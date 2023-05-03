@@ -2,6 +2,7 @@ from typing import Any, Optional, List, Tuple, Dict, Union
 import logging
 
 import numpy as np
+import eden
 from eden._eden_ensemble import _EdenEnsemble
 from eden._deployment import _deploy
 from eden._parser import _parse_sklearn_model, _get_leaves_bounds
@@ -10,11 +11,10 @@ from eden._types import (
     _round_up_pow2,
     _get_ctype,
     _ctypes_ensemble,
-    _qtypes_ensemble,
     _merge_ctypes,
     _info_ctype,
 )
-from eden._quantization import _quantize_ensemble
+from eden._quantization import _quantize_ensemble, _qparams_ensemble
 from eden._memory import _ensemble_memory_snapshot, _compute_memory_map
 
 
@@ -25,20 +25,41 @@ def _infer_supported_simd(*, target_architecture: str):
         return False
 
 
+def _connect_leaves(
+    *,
+    leaf_store_mode,
+    thresholds,
+    leaves,
+    feature_idx,
+    right_children,
+    n_trees,
+):
+    if leaf_store_mode == "internal":
+        for t in range(n_trees):
+            thresholds[t][feature_idx[t] == -2] = leaves[t].reshape(-1)
+
+    else:
+        current_leaves = 0
+        for t in range(n_trees):
+            right_children[t][feature_idx[t] == -2] = np.arange(
+                current_leaves, len(leaves[t]) + current_leaves
+            )
+            current_leaves = len(leaves[t]) + current_leaves
+    return right_children, thresholds
+
+
 def _organize_data_fields(
     *,
     leaf_store_mode: str,
+    input_ctype: str,
     threshold_ctype: str,
     leaf_ctype: str,
     right_child_ctype: str,
-    n_trees: int,
     n_leaves: int,
     leaf_shape: int,
-    feature_idx: np.ndarray,
-    thresholds: np.ndarray,
-    right_children: np.ndarray,
-    leaves: np.ndarray,
-) -> Tuple[np.ndarray, np.ndarray]:
+    input_qbits: Optional[int],
+    output_qbits: Optional[int],
+):
     if leaf_store_mode == "auto":
         if leaf_shape != 1:
             leaf_store_mode = "external"
@@ -50,18 +71,11 @@ def _organize_data_fields(
         merged_ctype = _merge_ctypes(ctypes=[leaf_ctype, threshold_ctype])
         leaf_ctype = merged_ctype
         threshold_ctype = merged_ctype
-
-        for t in range(n_trees):
-            thresholds[t][feature_idx[t] == -2] = leaves[t].reshape(-1)
-            # TODO: There is probably a smarter way to solve this issue
-            # Logits unsigned and threshold signed. If we quantize, what is the qtype?
-            if leaf_ctype != "float":
-                if "u" in old_leaf_ctype and "u" not in leaf_ctype:
-                    logging.warning(
-                        "Leaf were unsigned and thresholds signed. This may be bugged"
-                    )
-                    _, bits = _info_ctype(ctype=leaf_ctype)
-                    thresholds[t][feature_idx[t] == -2] -= 2**bits - 1
+        if merged_ctype == "float":
+            input_qbits = None
+            input_ctype = "float"
+            threshold_ctype = "float"
+            output_qbits = None
 
     else:
         # Not necessary if we store the leaves in a matrix
@@ -70,19 +84,14 @@ def _organize_data_fields(
         )
         merged_ctype = _merge_ctypes(ctypes=[right_child_ctype, leaf_idx_ctype])
         right_child_ctype = merged_ctype
-        current_leaves = 0
-        for t in range(n_trees):
-            right_children[t][feature_idx[t] == -2] = np.arange(
-                current_leaves, len(leaves[t]) + current_leaves
-            )
-            current_leaves = len(leaves[t]) + current_leaves
-
     return (
         leaf_store_mode,
-        thresholds,
-        threshold_ctype,
-        right_children,
         right_child_ctype,
+        input_ctype,
+        threshold_ctype,
+        leaf_ctype,
+        input_qbits,
+        output_qbits,
     )
 
 
@@ -132,8 +141,9 @@ def convert(
     model : Any
         A fitted tree-based classifier from scikit-learn
     test_data : Optional[np.ndarray], optional, shape {1, clf.n_features}
-        Test samples to write in C, should be already quantized. If None, generates a
-        single input with 0s, by default None
+        Test samples to write in C, should NOT be already quantized, unless
+        quantization_aware_training is set. If None, generates a single input with 0s,
+        by default None
     input_qbits, output_qbits : Optional[int], optional
         bits to be used when quantizing the input/output, if None use floats, by default
         None
@@ -224,8 +234,34 @@ def convert(
         output_qbits=output_qbits,
         output_data_range=output_data_range,
     )
-    # QTypes for quantized fields
-    input_qtype, leaf_qtype = _qtypes_ensemble(
+
+    # Leaf store mode - threshold_ctype is created here, it may differ from input_ctype
+    # This MUST be called before quantization to handle the case (internal + float)
+    (
+        leaf_store_mode,
+        right_child_ctype,  # It may be updated if we store larger indexes
+        # Fields with possible update
+        input_ctype,
+        threshold_ctype,
+        leaf_ctype,
+        input_qbits,
+        output_qbits,
+    ) = _organize_data_fields(
+        input_qbits=input_qbits,
+        output_qbits=output_qbits,
+        input_ctype=input_ctype,
+        n_leaves=n_leaves,
+        leaf_shape=leaf_shape,
+        threshold_ctype=input_ctype,
+        leaf_store_mode=leaf_store_mode,
+        leaf_ctype=leaf_ctype,
+        right_child_ctype=right_child_ctype,
+    )
+    # Memory occupation snapshot {FIELD: bits}
+    if leaf_store_mode == "internal":
+        n_leaves = 0
+    # qparams for quantized fields
+    input_qparams, leaf_qparams = _qparams_ensemble(
         input_qbits=input_qbits,
         input_data_range=input_data_range,
         output_qbits=output_qbits,
@@ -238,37 +274,23 @@ def convert(
     ) = _quantize_ensemble(
         n_trees=n_trees,
         quantization_aware_training=quantization_aware_training,
-        input_qtype=input_qtype,
-        leaf_qtype=leaf_qtype,
+        input_qbits=input_qbits,
+        leaf_qbits=output_qbits,
+        input_data_range=input_data_range,
+        output_data_range=output_data_range,
         thresholds=thresholds,
         feature_idx=feature_idx,
         leaves=leaves,
     )
 
-    # Optimizations based on the deployment flags
-    ## Leaf store mode - threshold_ctype is created here, it may differ from input_ctype
-    (
-        leaf_store_mode,
-        thresholds,
-        threshold_ctype,
-        right_children,
-        right_child_ctype,  # It may be updated if we store larger indexes
-    ) = _organize_data_fields(
-        n_trees=n_trees,
-        n_leaves=n_leaves,
-        leaf_shape=leaf_shape,
-        feature_idx=feature_idx,
+    right_children, thresholds = _connect_leaves(
         leaf_store_mode=leaf_store_mode,
         thresholds=thresholds,
-        threshold_ctype=input_ctype,
         leaves=leaves,
-        leaf_ctype=leaf_ctype,
+        feature_idx=feature_idx,
         right_children=right_children,
-        right_child_ctype=right_child_ctype,
+        n_trees=n_trees,
     )
-    # Memory occupation snapshot {FIELD: bits}
-    if leaf_store_mode == "internal":
-        n_leaves = 0
     # Struct or array?
     if ensemble_structure_mode == "auto":
         ensemble_structure_mode = _infer_ensemble_structure(
@@ -301,11 +323,23 @@ def convert(
     # SIMD Enabler
     if use_simd == "auto":
         use_simd = _infer_supported_simd(target_architecture=target_architecture)
+    # Test data
     if test_data is None:
         test_data = [np.zeros((n_features))]
-        if input_qbits is not None:
-            test_data = [inp.astype(np.int32) for inp in test_data]
+    else:
+        if not quantization_aware_training and input_qbits is not None:
+            test_data = [
+                eden.quantize(
+                    data=td,
+                    qbits=input_qbits,
+                    signed=False,
+                    data_range=input_data_range,
+                )
+                for td in test_data
+            ]
 
+    if input_qbits is not None:
+        test_data = [inp.astype(int) for inp in test_data]
     model = _EdenEnsemble(
         ROOTS=roots,
         FEATURE_IDX=feature_idx,
@@ -323,15 +357,17 @@ def convert(
         output_shape=output_shape,
         input_data_range=input_data_range,
         output_data_range=output_data_range,
+        output_qbits=output_qbits,
+        input_qbits=input_qbits,
         root_ctype=root_ctype,
         input_ctype=input_ctype,
         feature_idx_ctype=feature_idx_ctype,
         threshold_ctype=threshold_ctype,
         right_child_ctype=right_child_ctype,
         leaf_ctype=leaf_ctype,
-        input_qtype=input_qtype,
-        threshold_qtype=input_qtype,
-        leaf_qtype=leaf_qtype,
+        input_qparams=input_qparams,
+        threshold_qparams=input_qparams,
+        leaf_qparams=leaf_qparams,
         target_architecture=target_architecture,
         ensemble_structure_mode=ensemble_structure_mode,
         leaf_store_mode=leaf_store_mode,

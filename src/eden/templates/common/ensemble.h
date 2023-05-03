@@ -5,7 +5,7 @@
 %if  config.ensemble_structure_mode == "struct":
 struct Node {
     ${config.feature_idx_ctype} feature_idx;
-    // QTYPE : ${config.threshold_qtype}
+    // QTYPE : ${config.threshold_qparams}
     ${config.threshold_ctype} threshold;
     ${config.right_child_ctype} right_child;
 };

@@ -51,7 +51,7 @@ def _compute_memory_map(*, target_architecture: str, ensemble_memory: Dict[str, 
     mapping = defaultdict(lambda: "")
     if target_architecture == "gap8":
         L1 = "PI_CL_L1"
-        L2 = "PI_CL_L2"
+        L2 = ""
         L1_SIZE = 64 * 100
         L2_SIZE = 512 * 100
     elif target_architecture == "pulpissimo":

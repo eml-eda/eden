@@ -21,8 +21,8 @@ def _get_leaves_bounds(
 
     # GBT-like
     if task == "classification-ova":
-        minima = minima.reshape((n_estimators, n_trees / n_estimators))
-        maxima = maxima.reshape((n_estimators, n_trees / n_estimators))
+        minima = minima.reshape((n_estimators, n_trees // n_estimators))
+        maxima = maxima.reshape((n_estimators, n_trees // n_estimators))
 
     minima = np.sum(minima, axis=0)
     maxima = np.sum(maxima, axis=0)
@@ -50,7 +50,7 @@ def _parse_sklearn_tree(
     leaf = base_tree.value[leaf_nodes]
     # Leaf processing
     leaf = np.squeeze(leaf)
-    if task == "regression" or task == "regression-ova":
+    if task == "regression" or task == "classification-ova":
         leaf = leaf.reshape(-1, 1)
     # TODO: Understand how this changes depending on fitting weights
     if task == "classification":
@@ -122,7 +122,12 @@ def _parse_sklearn_model(
     n_leaves = sum([l.shape[0] for l in leaves])
     n_nodes = sum([n.shape[0] for n in thresholds])
     leaf_shape = leaves[-1].shape[1]
-    output_shape = model.n_outputs_
+    if task == "regression":
+        output_shape = 1
+    elif "classification" in task:
+        output_shape = model.n_classes_
+        if output_shape == 2:
+            output_shape = 1
     roots = np.asarray(roots)
 
     return (

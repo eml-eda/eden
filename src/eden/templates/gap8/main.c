@@ -18,7 +18,14 @@
  *  Author: Francesco Daghero francesco.daghero@polito.it
  * --------------------------------------------------------------------------
  */
-
+<%
+    def dequantize_str(var_name, qparams):
+      if qparams is None:
+        return var_name
+      s, z = qparams["s"], qparams["z"]
+      dequant = f"(({var_name} - {z})*{s})"
+      return dequant
+%>
 
 
 #define STACK_SIZE 512
@@ -61,10 +68,10 @@ void cluster_delegate(void *arg) {
     ${config.leaf_ctype} pred;
   %endif
   ENTER_LOOP_STATS();
-  %if config.leaf_shape == 1:
+  %if config.output_shape == 1:
     OUTPUT[0] = 0;
   %else:
-    for (int i = 0; i < LEAF_SHAPE; i++) {
+    for (int i = 0; i < OUTPUT_SHAPE; i++) {
       OUTPUT[i] = 0;
     }
   %endif
@@ -77,7 +84,11 @@ void cluster_delegate(void *arg) {
   STOP_STATS();
   EXIT_LOOP_STATS();
   #ifdef DEBUG
-  printf("Ensemble inference output: %d\n", pred);
+  %if config.task=="regression":
+    printf("INFERENCE OUTPUT:%f\n", ${dequantize_str("pred", config.leaf_qparams)});
+  %else:
+    printf("INFERENCE OUTPUT:%d\n", pred);
+  %endif
   #endif
 }
 

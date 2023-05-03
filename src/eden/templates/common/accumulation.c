@@ -23,23 +23,26 @@
  * --------------------------------------------------------------------------
  */
 </%doc>
-%if config.leaf_shape == 1:
-%if config.leaf_store_mode == "external":
-    output[0]+= *leaf;
-%elif config.leaf_store_mode == "internal":
-    output[0]+= leaf;
-%endif
-%elif vectorial_type is None or (config.leaf_shape/vectorial_div) < 1:
-    for(int l=0; l< LEAF_SHAPE; l++) {
+%if config.output_shape == 1:
+    %if config.leaf_store_mode == "external":
+        output[0]+= *leaf;
+    %elif config.leaf_store_mode == "internal":
+        output[0]+= leaf;
+    %endif
+%elif config.output_shape != 1 and config.leaf_shape == 1:
+        output[t%OUTPUT_SHAPE] += leaf;
+%elif vectorial_type is None or (config.output_shape/vectorial_div) < 1:
+    for(int l=0; l< OUTPUT_SHAPE; l++) {
         output[l] += leaf[l];
     } 
 %else:
-    ${vectorial_type} *config.leaf_vector = (${vectorial_type} *) leaf;
-    for(int l=0; l< (LEAF_SHAPE>>${int(vectorial_div/2)}); l++) {
+    ${vectorial_type} *output_vector =(${vectorial_type} *) output;
+    ${vectorial_type} *leaf_vector = (${vectorial_type} *) leaf;
+    for(int l=0; l< (OUTPUT_SHAPE>>${int(vectorial_div/2)}); l++) {
         output_vector[l] = ADD(output_vector[l], leaf_vector[l]);
     }
-    %if ((config.leaf_shape%vectorial_div) != 0):
-    for(int l = ${int(config.leaf_shape/vectorial_div)}; l<LEAF_SHAPE; l++) {
+    %if ((config.output_shape%vectorial_div) != 0):
+    for(int l = ${int(config.output_shape/vectorial_div)}; l<LEAF_SHAPE; l++) {
         output[l] += leaf[l];
     }
     %endif

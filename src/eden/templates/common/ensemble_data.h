@@ -27,6 +27,6 @@ ${config.memory_map["LEAVES"]} ${config.leaf_ctype} LEAVES[N_LEAVES][LEAF_SHAPE]
 };
 %endif
 
-//${config.leaf_qtype}
+//${config.leaf_qparams}
 ${config.memory_map["OUTPUT"]} ${config.leaf_ctype} OUTPUT[OUTPUT_SHAPE] ={0};
 #endif //__ENSEMBLE_DATA_H__

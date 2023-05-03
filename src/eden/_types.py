@@ -56,7 +56,7 @@ def _merge_ctypes(*, ctypes: List[str]) -> str:
             v_min = c_min
         if v_max < c_max:
             v_max = c_max
-    merged_bits = _bits_to_represent(value=max(abs(v_max), abs(v_min)))
+    merged_bits = _bits_to_represent(value=max(abs(v_max), abs(v_min))) + int(v_min < 0)
     merged_ctype = _get_ctype(bits_word=merged_bits, signed=v_min < 0)
     return merged_ctype
 
@@ -125,22 +125,16 @@ def _ctypes_ensemble(
     feature_idx_ctype = _get_ctype(
         bits_word=_bits_to_represent(value=n_features) + 1, signed=True
     )
-    input_ctype = _get_ctype(bits_word=input_qbits, signed=(input_data_range[0] < 0))
+    input_ctype = _get_ctype(
+        bits_word=input_qbits,
+        signed=(input_data_range[0] < 0),  # and (input_qbits is None),
+    )
 
     right_child_ctype = _get_ctype(
         bits_word=_bits_to_represent(value=2**max_depth), signed=False
     )
-    leaf_ctype = _get_ctype(bits_word=output_qbits, signed=(output_data_range[0] < 0))
+    leaf_ctype = _get_ctype(
+        bits_word=output_qbits,
+        signed=(output_data_range[0] < 0),  # and (output_qbits is None),
+    )
     return root_ctype, feature_idx_ctype, input_ctype, right_child_ctype, leaf_ctype
-
-
-def _qtypes_ensemble(
-    *,
-    input_qbits: Optional[int],
-    input_data_range: Tuple[float, float],
-    output_qbits: Optional[int],
-    output_data_range: Tuple[float, float],
-) -> Tuple[Optional[str], Optional[str]]:
-    input_qtype = _get_qtype(bits_word=input_qbits, data_range=input_data_range)
-    output_qtype = _get_qtype(bits_word=output_qbits, data_range=output_data_range)
-    return input_qtype, output_qtype

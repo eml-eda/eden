@@ -1,9 +1,10 @@
 <%
-    def dequantize_str(qtype):
-      if qtype is None:
-        return ""
-      bits_frac = int(qtype.split(".")[-1])
-      return f"/{float(2**(bits_frac))}"
+    def dequantize_str(var_name, qparams):
+      if qparams is None:
+        return var_name
+      s, z = qparams["s"], qparams["z"]
+      dequant = f"(({var_name} - {z})*{s})"
+      return dequant
 %>
 #include <stdio.h>
 #include <stdlib.h>
@@ -41,7 +42,7 @@ int main() {
     <%include file="argmax.c"/>
     #ifdef DEBUG
     %if config.task=="regression":
-    printf("INFERENCE OUTPUT:%f\n", pred${dequantize_str(config.leaf_qtype)});
+    printf("INFERENCE OUTPUT:%f\n", ${dequantize_str("pred", config.leaf_qparams)});
     %else:
     printf("INFERENCE OUTPUT:%d\n", pred);
     %endif

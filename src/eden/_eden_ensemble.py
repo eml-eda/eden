@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Optional, Mapping, List, Tuple
+from typing import Optional, Mapping, List, Tuple, Dict
 import numpy as np
 
 
@@ -28,6 +28,8 @@ class _EdenEnsemble:
     output_shape: int
     input_data_range: Tuple[float, float]
     output_data_range: Tuple[float, float]
+    input_qbits: Optional[int]
+    output_qbits: Optional[int]
 
     # ctypes
     root_ctype: str
@@ -36,10 +38,10 @@ class _EdenEnsemble:
     threshold_ctype: str
     right_child_ctype: str
     leaf_ctype: str
-    # qtypes
-    input_qtype: Optional[str]
-    threshold_qtype: Optional[str]
-    leaf_qtype: Optional[str]
+    # Quantization
+    input_qparams: Optional[Dict[str, float]]
+    threshold_qparams: Optional[Dict[str, float]]
+    leaf_qparams: Optional[Dict[str, float]]
 
     # configs
     target_architecture: str
