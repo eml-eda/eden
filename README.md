@@ -1,27 +1,32 @@
+<div align="left">
+<img src=".assets/eden_logo.png" width="300"/>
+</div>
+
 # **Eden**: **E**fficient **D**ecision tree **En**sembles
 ## Installation
 Install this library as a package either by cloning locally the repository or directy from the github url.
 
 ## Running the code
-The only step required is calling the eden.convert() function, providing an already trained model from scikit-learn
+The only step required is calling the eden.convert_to_eden() function, providing an already trained model from scikit-learn
 
 ```python3
-from sklearn.datasets import make_classification
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.datasets import load_iris
 
-X, y = make_classification( random_state=0, n_classes=2, n_informative=10,
-n_features=256)
-clf = RandomForestClassifier(max_depth=3, random_state=0, n_estimators=2)
-clf= clf.fit(X, y)
-test_data = np.zeros(shape=(1, X.shape[1]))
-ensemble_summary = convert(
-    model=clf,
-    test_data=[test_data],
-    input_qbits=32,
-    output_qbits=32,
-    input_data_range=(np.min(X), np.max(X)),
+X, y = load_iris(return_X_y=True)
+model = RandomForestClassifier(max_depth=3, random_state=0, n_estimators=16)
+model.fit(X, y)
+convert_to_eden(
+    estimator=model,
     quantization_aware_training=False,
+    input_qbits=8,
+    input_data_range=(X.min(), X.max()),
+    output_qbits=8,
+    leaves_store_mode="auto",
+    ensemble_structure_mode="auto",
 )
+
+
 ```
 This code will generate a compilable folder containing the ensemble, together with a Makefile.
 Refer to the docstring of eden.convert for further details on the parameters that can be selected.

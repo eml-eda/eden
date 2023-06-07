@@ -1,0 +1,59 @@
+{
+    "trees": [
+        {
+            "version": "0.1",
+            "estimator": "DecisionTreeClassifier",
+            "is_classification": true,
+            "n_nodes": 3,
+            "n_leaves": 2,
+            "max_depth": 1,
+            "leaf_len": 2,
+            "input_len": 4,
+            "eden_leaf_indicator": 5,
+            "feature": [
+                3,
+                5,
+                5
+            ],
+            "threshold": [
+                0.800000011920929,
+                0.0,
+                0.0
+            ],
+            "children_right": [
+                2,
+                0,
+                0
+            ],
+            "children_left": [
+                1,
+                -1,
+                -1
+            ],
+            "value": [
+                [
+                    0.5
+                ],
+                [
+                    0.0
+                ],
+                [
+                    1.0
+                ]
+            ]
+        }
+    ],
+    "version": "0.1",
+    "is_classification": true,
+    "n_estimators": 1,
+    "is_forest": false,
+    "n_trees": 1,
+    "estimator": "DecisionTreeClassifier",
+    "input_len": 4,
+    "max_depth": 1,
+    "n_nodes": 3,
+    "n_leaves": 2,
+    "eden_leaf_indicator": 5,
+    "leaf_len": 2,
+    "output_len": 1
+}

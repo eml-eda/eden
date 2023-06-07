@@ -9,11 +9,11 @@ include-package-data = false
 where = ["src"]
 
 [tool.setuptools.package-data]
-"*" = ["*.jinja2", "*.c", "*.h", "Makefile"]
+"*" = ["*.c", "*.h", "Makefile", "*.json"]
 
 [project]
 name = "eden"
-version = "0.1"
+version = "0.2"
 authors = [
   { name="Francesco Daghero", email="francesco.daghero@polito.it" },
 ]
@@ -24,6 +24,15 @@ requires-python = ">=3.8"
 classifiers = [
     "Programming Language :: Python :: 3",
 ]
+dependencies = [
+  "numpy",
+  "scikit-learn",
+  "mako"
+]
+
+[project.optional-dependencies]
+c_formatter = ["clang-format"]
+development = ["black"]
 
 [tool.pytest.ini_options]
 minversion = "6.0"

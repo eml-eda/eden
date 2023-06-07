@@ -28,7 +28,7 @@ Finally, it generates C templates of ensemble, allowing a fast deployment at the
 More info at https://github.com/eml-eda/eden.
 """
 
-from ._conversion import convert
-from ._run import run
-from ._quantization import quantize, dequantize
-from ._types import suggest_qtype
+import pkg_resources
+from .main import convert_to_eden
+
+__version__ = pkg_resources.get_distribution("eden").version
