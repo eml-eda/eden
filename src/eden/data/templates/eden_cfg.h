@@ -94,10 +94,10 @@ Type declaration needed for running eden,
 #define ADD(x,y) ((v2u) __builtin_pulp_add2(((v2s)x),((v2s)y)))
 #endif 
 
-// Dynamic inference 
-#define DYNAMIC_INFERENCE
+// Dynamic inference - ONLY for classification, do not enable for regression
+//#define DYNAMIC_INFERENCE
 #define BATCH 1// 
-#define AGG_SCORE_MARGIN 
+#define AGG_MAX_SCORE //AGG_SCORE_MARGIN  // AGG_SM only for >2 classes 
 #define ADAPTIVE_THRESHOLD 128  // Stopping threshold
 
 #define N_ADAPTIVE_STEPS (((N_ESTIMATORS + BATCH -1)/BATCH)-1)//((N_ESTIMATORS/BATCH)-1 + (N_ESTIMATORS%BATCH))

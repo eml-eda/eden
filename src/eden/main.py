@@ -33,6 +33,38 @@ def convert_to_eden(
     # Output
     output_dir: str = "eden-ensemble",
 ) -> Mapping:
+    """
+    Main entry point to convert a model in C
+
+    Parameters
+    ----------
+    estimator : Any
+        The object storing the ensemble
+    quantization_aware_training : bool
+        Controls whether the ensemble was quantized before passing it to EDEN
+    input_qbits : Optional[int]
+        Bitwidth of inputs. None for float
+    input_data_range : Tuple[float, float]
+        The range of the input data (for quantization)
+    output_qbits : Optional[int]
+        Bitwidth of output. None for float
+    estimator_library : str, optional
+        The library used to train the estimator, by default "scikit-learn"
+    leaves_store_mode : str, optional
+        Store the leaves in the thresholds or in a separate structure, by default "auto"
+    ensemble_structure_mode : str, optional
+        Store the nodes as a struct or as arrays(WIP), by default "struct"
+    test_data : Optional[List[np.ndarray]], optional
+        Some inputs to be added to the C file. Inputs should be already quantized,
+        by default None
+    output_dir : str, optional
+        where the C library should be stored, by default "eden-ensemble"
+
+    Returns
+    -------
+    Mapping
+        _description_
+    """
     assert estimator_library in ["scikit-learn"]
     if estimator_library == "scikit-learn":
         estimator_dictionary = sk_parse.parse_estimator(estimator=estimator)
