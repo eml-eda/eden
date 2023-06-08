@@ -1,7 +1,3 @@
-<div align="left">
-<img src=".assets/eden_logo.png" width="300"/>
-</div>
-
 # **Eden**: **E**fficient **D**ecision tree **En**sembles
 ## Installation
 Install this library as a package either by cloning locally the repository or directy from the github url.
