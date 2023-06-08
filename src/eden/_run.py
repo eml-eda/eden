@@ -1,6 +1,7 @@
 """
-Currently not implemented
+Currently not working
 """
+raise NotImplementedError
 from eden._eden_ensemble import _EdenEnsemble
 import subprocess
 

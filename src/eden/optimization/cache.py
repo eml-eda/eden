@@ -1,3 +1,22 @@
+# *--------------------------------------------------------------------------*
+# * Copyright (c) 2023 Politecnico di Torino, Italy                          *
+# * SPDX-License-Identifier: Apache-2.0                                      *
+# *                                                                          *
+# * Licensed under the Apache License, Version 2.0 (the "License");          *
+# * you may not use this file except in compliance with the License.         *
+# * You may obtain a copy of the License at                                  *
+# *                                                                          *
+# * http://www.apache.org/licenses/LICENSE-2.0                               *
+# *                                                                          *
+# * Unless required by applicable law or agreed to in writing, software      *
+# * distributed under the License is distributed on an "AS IS" BASIS,        *
+# * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. *
+# * See the License for the specific language governing permissions and      *
+# * limitations under the License.                                           *
+# *                                                                          *
+# * Author: Francesco Daghero francesco.daghero@polito.it                    *
+# *--------------------------------------------------------------------------*
+
 """
 Collections of functions to determine the L-Flag for each variable,
 it requires an estimation of the memory
@@ -8,7 +27,7 @@ from copy import deepcopy
 import numpy as np
 
 
-def knapsack_01(weights, values, capacity):
+def _knapsack_01(weights, values, capacity):
     n = len(weights)
     dp = [[0] * (capacity + 1) for _ in range(n + 1)]
     selected = [[False] * (capacity + 1) for _ in range(n + 1)]
@@ -45,7 +64,22 @@ def cache_placer(
     estimator_dict: Mapping[str, int],
     input_bits: int,
     output_bits: int,
-):
+)->Mapping:
+    """
+    Determines the cache level of each C array of the ensemble
+
+    Parameters
+    ----------
+    estimator_dict : Mapping[str, int]
+        The eden ensemble dictionary
+    input_bits, output_bits : int
+        Bit width of inputs/outputs
+
+    Returns
+    -------
+    Mapping
+        The updated estimator dict
+    """
     # The order depends on the access ratio.
     estimator_dict = deepcopy(estimator_dict)
     cache = {}
@@ -108,10 +142,9 @@ def cache_placer(
         weights.append(leaves_buffer_weight)
         values.append(leaves_buffer_value)
 
-    # idx_in_sack = knapsack_01(
-    #    SIZE_L1, weights=weights, values=values, n_elements=len(values)
-    # )
-    max_val, idx_in_sack = knapsack_01(weights=weights, values=values, capacity=SIZE_L1)
+    max_val, idx_in_sack = _knapsack_01(
+        weights=weights, values=values, capacity=SIZE_L1
+    )
     cache["EDEN_NODE_STRUCT"]["input_ltype"] = "L1" if 0 in idx_in_sack else ""
     cache["EDEN_NODE_STRUCT"]["output_ltype"] = "L1" if 1 in idx_in_sack else ""
     cache["EDEN_NODE_STRUCT"]["roots_ltype"] = "L1" if 2 in idx_in_sack else ""
@@ -152,10 +185,7 @@ def cache_placer(
         weights.append(leaves_buffer_weight)
         values.append(leaves_buffer_value)
 
-    _, idx_in_sack = knapsack_01(weights=weights, values=values, capacity=SIZE_L1)
-    # idx_in_sack = verboseKnapSack(
-    #    SIZE_L1, weights=weights, values=values, n_elements=len(values)
-    # )
+    _, idx_in_sack = _knapsack_01(weights=weights, values=values, capacity=SIZE_L1)
     cache["EDEN_NODE_ARRAY"]["input_ltype"] = "L1" if 0 in idx_in_sack else ""
     cache["EDEN_NODE_ARRAY"]["output_ltype"] = "L1" if 1 in idx_in_sack else ""
     cache["EDEN_NODE_ARRAY"]["roots_ltype"] = "L1" if 2 in idx_in_sack else ""

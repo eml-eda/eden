@@ -1,3 +1,22 @@
+# *--------------------------------------------------------------------------*
+# * Copyright (c) 2023 Politecnico di Torino, Italy                          *
+# * SPDX-License-Identifier: Apache-2.0                                      *
+# *                                                                          *
+# * Licensed under the Apache License, Version 2.0 (the "License");          *
+# * you may not use this file except in compliance with the License.         *
+# * You may obtain a copy of the License at                                  *
+# *                                                                          *
+# * http://www.apache.org/licenses/LICENSE-2.0                               *
+# *                                                                          *
+# * Unless required by applicable law or agreed to in writing, software      *
+# * distributed under the License is distributed on an "AS IS" BASIS,        *
+# * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. *
+# * See the License for the specific language governing permissions and      *
+# * limitations under the License.                                           *
+# *                                                                          *
+# * Author: Francesco Daghero francesco.daghero@polito.it                    *
+# *--------------------------------------------------------------------------*
+
 """
 Collection of functions to detect where the leaf data is stored.
 Generally internal for binary or regression, always external for multiclass
@@ -16,7 +35,24 @@ def prepare_leaves_placement(
     leaf_placement_strategy: str,
     input_qbits: Optional[int],
     output_qbits: Optional[int],
-):
+)->Mapping:
+    """
+    Checks if leaves should be stored inside or outside the nodes.
+
+    Parameters
+    ----------
+    estimator_dict : Mapping
+        The eden dictionary
+    leaf_placement_strategy : str
+        How the leaves should be stored, possible values : internal, external, auto.
+    input_qbits, output_qbits : Optional[int]
+        input and output bitwidth, None means float
+
+    Returns
+    -------
+    Mapping
+        The updated eden dictionary
+    """
     estimator_dict = deepcopy(estimator_dict)
     n_nodes = estimator_dict["n_nodes"]
     n_leaves = estimator_dict["n_leaves"]
@@ -66,7 +102,7 @@ def prepare_leaves_placement(
 def merge_leaves_in_thresholds(estimator_dict : Mapping):
     estimator_dict = deepcopy(estimator_dict)
     for tree in estimator_dict["trees"]:
-        lejves_idxs = np.asarray(tree["feature"]) == tree["eden_leaf_indicator"]
+        leaves_idxs = np.asarray(tree["feature"]) == tree["eden_leaf_indicator"]
         threshold = np.asarray(tree["threshold"])
         threshold[leaves_idxs] = np.asarray(tree["values"])
         tree["threshold"]= threshold.tolist()

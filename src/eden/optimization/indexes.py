@@ -1,3 +1,22 @@
+# *--------------------------------------------------------------------------*
+# * Copyright (c) 2023 Politecnico di Torino, Italy                          *
+# * SPDX-License-Identifier: Apache-2.0                                      *
+# *                                                                          *
+# * Licensed under the Apache License, Version 2.0 (the "License");          *
+# * you may not use this file except in compliance with the License.         *
+# * You may obtain a copy of the License at                                  *
+# *                                                                          *
+# * http://www.apache.org/licenses/LICENSE-2.0                               *
+# *                                                                          *
+# * Unless required by applicable law or agreed to in writing, software      *
+# * distributed under the License is distributed on an "AS IS" BASIS,        *
+# * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. *
+# * See the License for the specific language governing permissions and      *
+# * limitations under the License.                                           *
+# *                                                                          *
+# * Author: Francesco Daghero francesco.daghero@polito.it                    *
+# *--------------------------------------------------------------------------*
+
 """
 Collection of scripts to compute the bits required by each index in the ensemble.
 This optimization pass has no effect on the accuracy.
@@ -5,10 +24,23 @@ This optimization pass has no effect on the accuracy.
 from . import _get_bits_to_represent
 from typing import Mapping, MutableMapping
 from copy import deepcopy
-from . import _DEPLOYMENT_KEY
 
 
-def compute_bits_indexes(estimator_dict: Mapping) -> Mapping[str, int]:
+def compute_bits_indexes(estimator_dict: Mapping) -> Mapping:
+    """
+    Determines the smallest bit-width for each index-array
+
+    Parameters
+    ----------
+    estimator_dict : Mapping
+        The eden dictionary
+
+    Returns
+    -------
+    Mapping
+        The updated eden dictionary
+    """
+
     # Extract constants
     estimator_dict = deepcopy(estimator_dict)
     cfg = estimator_dict
