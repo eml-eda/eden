@@ -122,6 +122,7 @@ downloads/
 eggs/
 .eggs/
 lib/
+!src/eden/data/lib/
 lib64/
 parts/
 sdist/
