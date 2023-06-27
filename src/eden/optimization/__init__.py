@@ -17,7 +17,4 @@
 # * Author: Francesco Daghero francesco.daghero@polito.it                    *
 # *--------------------------------------------------------------------------*
 
-from .utils import _get_bits_to_represent
-
-# Some constants to name elements in the dictionary
-from eden._config import _DEPLOYMENT_KEY
+from .quantization import quantize, quantize_alphas, get_output_range

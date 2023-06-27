@@ -17,4 +17,3 @@
 # * Author: Francesco Daghero francesco.daghero@polito.it                    *
 # *--------------------------------------------------------------------------*
 
-from .validation import validate_json

@@ -29,6 +29,6 @@ More info at https://github.com/eml-eda/eden.
 """
 
 import pkg_resources
-from .main import convert_to_eden
+from .edengarden import EdenGarden
 
 __version__ = pkg_resources.get_distribution("eden").version

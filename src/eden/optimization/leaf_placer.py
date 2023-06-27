@@ -26,7 +26,45 @@ from typing import Mapping, Optional
 import numpy as np
 from copy import deepcopy
 
-from . import _get_bits_to_represent
+
+def _get_optimal_leaves_placement(
+    *,
+    bits_children_right: int,
+    bits_threshold: int,
+    bits_output: int,
+    bits_leaves_idx: int,
+    n_leaves: int,
+    n_nodes: int,
+) -> str:
+    external_bits = (
+        max(bits_leaves_idx, bits_children_right) * n_nodes + bits_output * n_leaves
+    )
+    internal_bits = (
+        bits_children_right * n_nodes + max(bits_output, bits_threshold) * n_nodes
+    )
+    placement = "internal" if internal_bits <= external_bits else "external"
+    return placement
+
+
+def _place_leaves(*, mode, root, children_right, leaf_value, threshold):
+    # Iterate over the trees
+    n_leaves = 0
+    for tree_idx in range(len(root)):
+        start_idx = root[tree_idx]
+        if tree_idx == (len(root) - 1):
+            end_idx = len(children_right)
+        else:
+            end_idx = root[tree_idx + 1]
+        leaves_idx = children_right[start_idx:end_idx] == 0
+        start_leaf = n_leaves
+        end_leaf = start_leaf + leaves_idx.sum()
+        if mode == "internal":
+            threshold[start_idx:end_idx][leaves_idx] = leaf_value[start_leaf:end_leaf]
+        else:
+            children_right[start_idx:end_idx][leaves_idx] = np.arange(
+                start_leaf, end_leaf
+            )
+    return children_right, threshold
 
 
 def prepare_leaves_placement(
@@ -35,7 +73,7 @@ def prepare_leaves_placement(
     leaf_placement_strategy: str,
     input_qbits: Optional[int],
     output_qbits: Optional[int],
-)->Mapping:
+) -> Mapping:
     """
     Checks if leaves should be stored inside or outside the nodes.
 
@@ -86,7 +124,7 @@ def prepare_leaves_placement(
 
     # No actions yet on the values to avoid messing the quantization.
     # Right child can be changed
-    if leaf_placement_strategy=="external":
+    if leaf_placement_strategy == "external":
         previous_leaves = 0
         for idx, tree in enumerate(estimator_dict["trees"]):
             leaves_idxs = np.asarray(tree["feature"]) == tree["eden_leaf_indicator"]
@@ -99,11 +137,11 @@ def prepare_leaves_placement(
     return estimator_dict, leaf_placement_strategy
 
 
-def merge_leaves_in_thresholds(estimator_dict : Mapping):
+def merge_leaves_in_thresholds(estimator_dict: Mapping):
     estimator_dict = deepcopy(estimator_dict)
     for tree in estimator_dict["trees"]:
         leaves_idxs = np.asarray(tree["feature"]) == tree["eden_leaf_indicator"]
         threshold = np.asarray(tree["threshold"])
         threshold[leaves_idxs] = np.asarray(tree["values"])
-        tree["threshold"]= threshold.tolist()
+        tree["threshold"] = threshold.tolist()
     return estimator_dict

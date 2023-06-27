@@ -13,7 +13,7 @@ where = ["src"]
 
 [project]
 name = "eden"
-version = "0.2"
+version = "0.3"
 authors = [
   { name="Francesco Daghero", email="francesco.daghero@polito.it" },
 ]

@@ -17,5 +17,5 @@
 # * Author: Francesco Daghero francesco.daghero@polito.it                    *
 # *--------------------------------------------------------------------------*
 
-from .estimator import parse_estimator
-from .tree import parse_tree
+from .estimator import parse_estimator_data
+from .tree import parse_tree_data

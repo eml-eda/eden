@@ -21,94 +21,44 @@
 Collection of functions to export the data from a valid dictionary to 
 the mako one.
 """
-import shutil
+import pathlib
 from typing import Mapping, List
 import numpy as np
 import os
 from mako.lookup import TemplateLookup
 import pkg_resources
 from copy import deepcopy
-from ._data import _write_template_data
-from ._config import _write_template_config
-from ._main import _write_template_main
-from ._input import _write_template_input
+from eden.codegen import _formatter as formatter
 
-TEMPLATES_DIR = pkg_resources.resource_filename("eden", "data/templates")
-LIB_DIR = pkg_resources.resource_filename("eden", "data/lib")
-MAKEFILES_DIR = pkg_resources.resource_filename("eden", "data/makefiles")
+DATA_DIR = pkg_resources.resource_filename("eden", "data")
 
 
 def export(
-    *, estimator_dict: Mapping, test_data: List[np.ndarray], output_dir: str = "."
+    *,
+    eden_model: "EdenGarden",
+    deployment_folder: str = "eden-ensemble",
 ):
-    """
-    Export the input estimator in C
+    eden_model = deepcopy(eden_model)
+    os.makedirs(name=deployment_folder, exist_ok=True)
+    # Sub-dir in data/
+    for root, dirs, files in os.walk(DATA_DIR):
+        if len(files) == 0:
+            continue
+        tgt_dir = root.replace(DATA_DIR, deployment_folder)
+        tgt_dir = tgt_dir.replace("common", "")
+        tgt_dir = tgt_dir.replace("examples", "")
+        tgt_dir = pathlib.Path(tgt_dir)
+        lookup = TemplateLookup(
+            directories=[root],
+            strict_undefined=True,
+        )
+        os.makedirs(tgt_dir, exist_ok=True)
+        for file_name in files:
+            template = lookup.get_template(file_name)
+            template_string = template.render(data=eden_model, formatter=formatter)
+            with open(os.path.join(tgt_dir, file_name), "w") as f:
+                f.write(template_string)
 
-    Parameters
-    ----------
-    estimator_dict : Mapping
-        eden dictionary storing the information about the ensemble
-    test_data : List[np.ndarray]
-        test inputs to be dumped in C 
-    output_dir : str, optional
-        the directory where the C code is generated
-
-    Returns
-    -------
-    Mapping
-        The updated estimator dictionary
-    """
-    estimator_dict = deepcopy(estimator_dict)
-    os.makedirs(name=output_dir, exist_ok=True)
-    lookup = TemplateLookup(
-        directories=[
-            os.path.join(TEMPLATES_DIR),
-        ],
-        strict_undefined=True,
-    )
-    estimator_dict = _write_template_data(
-        lookup=lookup, output_dir=output_dir, template_data_src=estimator_dict
-    )
-    estimator_dict = _write_template_config(
-        lookup=lookup, output_dir=output_dir, template_data_src=estimator_dict
-    )
-
-    estimator_dict = _write_template_input(
-        lookup=lookup,
-        output_dir=output_dir,
-        template_data_src=estimator_dict,
-        test_data=test_data,
-    )
-
-    estimator_dict = _write_template_main(
-        lookup=lookup, output_dir=output_dir, template_data_src=estimator_dict
-    )
-    _write_library(
-        output_dir=output_dir,
-    )
-    return estimator_dict
-
-
-def _write_library(output_dir: str):
-    os.makedirs(os.path.join(output_dir, "eden"), exist_ok=True)
-    for e in os.listdir(os.path.join(LIB_DIR)):
-        full_path = os.path.join(LIB_DIR, e)
-        os.makedirs(os.path.join(output_dir, "eden", "src"), exist_ok=True)
-        os.makedirs(os.path.join(output_dir, "eden", "include"), exist_ok=True)
-        if os.path.isfile(full_path):
-            _, extension = os.path.splitext(e)
-            if extension == ".h":
-                subfolder = "include"
-            elif extension == ".c":
-                subfolder = "src"
-            tgt_path = os.path.join(output_dir, "eden", subfolder, e)
-            shutil.copy(full_path, tgt_path)
-        else:
-            tgt_path = os.path.join(output_dir, "eden", "include", e)
-            shutil.copytree(full_path, tgt_path, dirs_exist_ok=True)
-
-    for e in os.listdir(MAKEFILES_DIR):
-        full_path = os.path.join(MAKEFILES_DIR, e)
-        tgt_path = os.path.join(output_dir, e)
-        if os.path.isfile(full_path):
-            shutil.copy(full_path, tgt_path)
+            file_extension = os.path.splitext(file_name)[1]
+            if file_extension in [".c", ".h"]:
+                os.system(f"clang-format -i {os.path.join(tgt_dir,file_name)}")

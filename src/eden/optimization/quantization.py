@@ -87,7 +87,7 @@ def quantize(
         data = np.round(data / S + Z).astype(int)
     else:
         data = np.trunc(data / S + Z).astype(int)
-    data = np.clip(a=data, a_min=qmin, a_max=qmax)
+    data = np.clip(a=data, a_min=qmin, a_max=qmax).astype(int)
     return data
 
 
@@ -120,22 +120,22 @@ def quantize_alphas(
         A copy of estimator with quantized alphas.
     """
     assert hasattr(estimator, "estimators_") or hasattr(
-        "tree_"
+        estimator, "tree_"
     ), "Invalid or not trained model, call .fit() first"
     qestimator = deepcopy(estimator)
     # Ensemble - GBT
     if hasattr(estimator, "tree_") and not hasattr(estimator, "estimators_"):
         __quantize_tree_alphas(
-            qestimator,
+            tree=qestimator,
             min_val=input_min_val,
             max_val=input_max_val,
             bits=bits,
             method=method,
         )
     else:
-        for tree in np.asarray(estimator.estimators_).reshape(-1):
+        for tree in np.asarray(qestimator.estimators_).reshape(-1):
             __quantize_tree_alphas(
-                tree,
+                tree=tree,
                 min_val=input_min_val,
                 max_val=input_max_val,
                 bits=bits,
@@ -148,12 +148,15 @@ def __quantize_tree_alphas(
     *, tree: BaseDecisionTree, min_val: float, max_val: float, bits: int, method: str
 ):
     basetree = tree.tree_
-    leaves_idx = basetree.children_left != _tree.TREE_LEAF
+    nodes_idx = basetree.children_left != _tree.TREE_LEAF
     if method == "qat":
-        basetree.threshold[leaves_idx] = np.ceil(basetree.threshold[leaves_idx])
+        basetree.threshold[nodes_idx] = np.ceil(basetree.threshold[nodes_idx])
     else:
-        basetree.threshold[leaves_idx] = quantize(
-            basetree.threshold[leaves_idx], min_val=min_val, max_val=max_val, bits=bits
+        basetree.threshold[nodes_idx] = quantize(
+            data=basetree.threshold[nodes_idx],
+            min_val=min_val,
+            max_val=max_val,
+            bits=bits,
         )
 
 
@@ -219,9 +222,9 @@ def __get_leaf_extrema(estimator) -> Tuple[float, float]:
     return output_min, output_max
 
 
-def get_output_qparams(estimator):
+def get_output_range(estimator):
     assert hasattr(estimator, "estimators_") or hasattr(
-        "tree_"
+        estimator, "tree_"
     ), "Invalid or not trained model, call .fit() first"
     qestimator = deepcopy(estimator)
     output_min, output_max = __get_leaf_extrema(qestimator)

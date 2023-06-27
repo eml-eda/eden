@@ -22,7 +22,7 @@ Collections of functions to determine the L-Flag for each variable,
 it requires an estimation of the memory
 """
 import math
-from typing import Mapping
+from typing import Mapping, Tuple
 from copy import deepcopy
 import numpy as np
 
@@ -59,142 +59,28 @@ def _knapsack_01(weights, values, capacity):
 
 # For now it is used only by GAP8
 # Set in L1 everything fitting, leave the rest in L2 (no flag for GAP8)
-# TODO : Last function to be called, this requires an idea of external/internal leaves,
-def cache_placer(
-    estimator_dict: Mapping[str, int],
-    input_bits: int,
-    output_bits: int,
-)->Mapping:
-    """
-    Determines the cache level of each C array of the ensemble
-
-    Parameters
-    ----------
-    estimator_dict : Mapping[str, int]
-        The eden ensemble dictionary
-    input_bits, output_bits : int
-        Bit width of inputs/outputs
-
-    Returns
-    -------
-    Mapping
-        The updated estimator dict
-    """
+def _cache_placer(**kwargs: Mapping[str, Tuple[int, int]]) -> Mapping:
+    # TODO : Document this
     # The order depends on the access ratio.
-    estimator_dict = deepcopy(estimator_dict)
-    cache = {}
-    cache["EDEN_NODE_ARRAY"] = {}
-    cache["EDEN_NODE_STRUCT"] = {}
-    estimator_dict["input_bits"] = input_bits
-    estimator_dict["threshold_bits"] = input_bits
-    estimator_dict["output_bits"] = output_bits
-    input_len = estimator_dict["input_len"]
-    input_bits = estimator_dict["input_bits"]
-    n_nodes = estimator_dict["n_nodes"]
-    output_len = estimator_dict["output_len"]
-    output_bits = estimator_dict["output_bits"]
-    n_estimators = estimator_dict["n_estimators"]
-    n_trees = estimator_dict["n_trees"]
-    feature_bits = estimator_dict["feature_bits"]
-    threshold_bits = estimator_dict["threshold_bits"]
-    right_child_shift_bits = estimator_dict["children_right_bits"]
-
-    leaves_bits = estimator_dict["output_bits"]
-    n_leaves = estimator_dict["n_leaves"]
     SIZE_L1 = 64000
+    buffers_to_place = deepcopy(kwargs)
+    weights = list()
+    access_rates = list()
 
-    # Inputs
-    input_buffer_weight = input_len * input_bits
-    input_buffer_value = n_nodes
-
-    # Output
-    output_buffer_weight = output_len * output_bits
-    output_buffer_value = n_estimators * output_len
-
-    # Roots
-    roots_len = n_trees
-    roots_buffer_weight = estimator_dict["roots_bits"] * n_trees
-    roots_buffer_value = n_trees
-
-    # Nodes
-    # TODO : Include alignment
-    nodes_buffer_weight = (
-        feature_bits + threshold_bits + right_child_shift_bits
-    ) * n_nodes
-    nodes_buffer_value = math.log2(n_nodes)
     # Knapsack
-    weights = [
-        input_buffer_weight,
-        output_buffer_weight,
-        roots_buffer_weight,
-        nodes_buffer_weight,
-    ]
-    values = [
-        input_buffer_value,
-        output_buffer_value,
-        roots_buffer_value,
-        nodes_buffer_value,
-    ]
-    # Leaves
-    if estimator_dict["leaves_store_mode"] == "external":
-        leaves_buffer_weight = (output_bits) * n_leaves
-        leaves_buffer_value = math.log2(n_leaves)
-        weights.append(leaves_buffer_weight)
-        values.append(leaves_buffer_value)
+    for buffer_name, data in buffers_to_place.items():
+        weights.append(data[0])
+        access_rates.append(data[1])
 
-    max_val, idx_in_sack = _knapsack_01(
-        weights=weights, values=values, capacity=SIZE_L1
+    _, idx_in_sack = _knapsack_01(
+        weights=weights, values=access_rates, capacity=SIZE_L1
     )
-    cache["EDEN_NODE_STRUCT"]["input_ltype"] = "L1" if 0 in idx_in_sack else ""
-    cache["EDEN_NODE_STRUCT"]["output_ltype"] = "L1" if 1 in idx_in_sack else ""
-    cache["EDEN_NODE_STRUCT"]["roots_ltype"] = "L1" if 2 in idx_in_sack else ""
-    cache["EDEN_NODE_STRUCT"]["nodes_ltype"] = "L1" if 3 in idx_in_sack else ""
 
-    if estimator_dict["leaves_store_mode"] == "external":
-        cache["EDEN_NODE_STRUCT"]["leaves_ltype"] = "L1" if 4 in idx_in_sack else ""
+    buffer_placement = list()
+    for idx in range(len(buffers_to_place.keys())):
+        if idx in idx_in_sack:
+            buffer_placement.append("L1")
+        else:
+            buffer_placement.append("")
 
-    # For array-mode
-    # Feature
-    feature_buffer_weight = (feature_bits) * n_nodes
-    feature_buffer_value = math.log2(n_nodes)
-    # Threshold
-    threshold_buffer_weight = (threshold_bits) * n_nodes
-    threshold_buffer_value = math.log2(n_nodes)
-
-    # Right child
-    right_child_shift_buffer_weight = (right_child_shift_bits) * n_nodes
-    right_child_shift_buffer_value = math.log2(n_nodes)
-    weights = [
-        input_buffer_weight,
-        output_buffer_weight,
-        roots_buffer_weight,
-        feature_buffer_weight,
-        threshold_buffer_weight,
-        right_child_shift_buffer_weight,
-    ]
-    values = [
-        input_buffer_value,
-        output_buffer_value,
-        roots_buffer_value,
-        feature_buffer_value,
-        threshold_buffer_value,
-        right_child_shift_buffer_value,
-    ]
-    # Leaves
-    if estimator_dict["leaves_store_mode"] == "external":
-        weights.append(leaves_buffer_weight)
-        values.append(leaves_buffer_value)
-
-    _, idx_in_sack = _knapsack_01(weights=weights, values=values, capacity=SIZE_L1)
-    cache["EDEN_NODE_ARRAY"]["input_ltype"] = "L1" if 0 in idx_in_sack else ""
-    cache["EDEN_NODE_ARRAY"]["output_ltype"] = "L1" if 1 in idx_in_sack else ""
-    cache["EDEN_NODE_ARRAY"]["roots_ltype"] = "L1" if 2 in idx_in_sack else ""
-    cache["EDEN_NODE_ARRAY"]["feature_ltype"] = "L1" if 3 in idx_in_sack else ""
-    cache["EDEN_NODE_ARRAY"]["threshold_ltype"] = "L1" if 4 in idx_in_sack else ""
-    cache["EDEN_NODE_ARRAY"]["children_right_ltype"] = "L1" if 5 in idx_in_sack else ""
-
-    if estimator_dict["leaves_store_mode"] == "external":
-        cache["EDEN_NODE_ARRAY"]["leaves_ltype"] = "L1" if 6 in idx_in_sack else ""
-
-    estimator_dict["cache"] = cache
-    return estimator_dict
+    return buffer_placement
