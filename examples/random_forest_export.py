@@ -37,6 +37,7 @@ X, y = load_iris(return_X_y=True)
 model = RandomForestClassifier(n_estimators=10, max_depth=4, random_state=0)
 model.fit(X, y)
 
+# Quantize the model (N.B alphas are quantized post-training)
 eden_model = EdenGarden(
     estimator=model,
     input_range=(X.min(), X.max()),
@@ -44,5 +45,12 @@ eden_model = EdenGarden(
     output_qbits=8,
     quantization_aware_training=False,
 )
+# Utility method to convert the forest in a C-like format.
+# Use the argument X_test to specify custom input data to write in C.
 eden_model.fit()
+# Write the template
 eden_model.deploy()
+# Now we can manually go inside the generated folder and run the Makefile of the
+# target architecture
+# N.B This step requires a working Pulpissimo/Gap8 toolchain or GCC for the "gcc"
+# folder.

@@ -66,7 +66,21 @@ class EdenGarden:
         self.output_qbits = output_qbits
         self.quantization_aware_training = quantization_aware_training
 
-    def fit(self, X_test=None):
+    def fit(self, X_test: Optional[np.ndarray] = None):
+        """
+        Main conversion step of the ensemble.
+
+
+        Parameters
+        ----------
+        X_test : np.ndarray, optional
+           Data to be written in a C header file, by default None
+           If None, generates a single input with all 0s
+
+        Returns
+        -------
+        self
+        """
         # Extract the needed statistics for deployment
         (
             self.n_estimators_,
@@ -270,7 +284,15 @@ class EdenGarden:
                 leaf_buffer=leaf_buffer,
             )
 
-    def deploy(self, deployment_folder="./eden-ensemble/"):
+    def deploy(self, deployment_folder: str = "./eden-ensemble/"):
+        """
+        Exports the current ensemble.
+
+        Parameters
+        ----------
+        deployment_folder : str
+            Path to the output directory, by default "./eden-ensemble/"
+        """
         assert hasattr(self, "n_estimators_"), "Call .fit() first"
         self._prepare_deployment_structures()
         self._prepare_deployment_ctypes()
