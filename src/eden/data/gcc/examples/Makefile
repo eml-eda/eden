@@ -1,4 +1,4 @@
-FLAGS = -DDEBUG
+FLAGS = -DDEBUG -DINPUT_IDX=0
 clean:
 	rm -f ./eden-ensemble.bin
 all:

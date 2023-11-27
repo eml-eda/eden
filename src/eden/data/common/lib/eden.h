@@ -52,6 +52,7 @@ inline node_struct* __attribute__((always_inline)) tree_inference(
 }
 
 inline void __attribute__((always_inline)) accumulate(
+    int tree_idx,
     OUTPUT_CTYPE output[OUTPUT_LEN],
 #if defined(EDEN_LEAF_STORE_EXTERNAL)
     OUTPUT_CTYPE *leaf
@@ -63,12 +64,14 @@ inline void __attribute__((always_inline)) accumulate(
       #if defined(GAP8) && (N_CORES>1) //CS_START
       pi_cl_team_critical_enter();
       #endif 
-      // Single element leaves - internal - (Regression, Multiclass - OVO)
+      // Single element leaves - external - (Regression, Multiclass - OVO)
       #if (LEAF_LEN == 1) && defined(EDEN_LEAF_STORE_EXTERNAL)
-      output[t%OUTPUT_LEN] += leaf[0];
+      output[tree_idx%OUTPUT_LEN] += leaf[0];
       // Single element leaves - internal - (Regression, Multiclass - OVO)
+      #elif (LEAF_LEN == 1) && defined(EDEN_LEAF_STORE_INTERNAL) && defined(EDEN_STORE_CLASS_IDX)
+      output[(int)leaf] += 1;
       #elif (LEAF_LEN == 1) && defined(EDEN_LEAF_STORE_INTERNAL)
-      output[t%OUTPUT_LEN] += leaf;
+      output[tree_idx%OUTPUT_LEN] += leaf;
       // Accumulation - Arrays
       // 8-bit vectorial
       #elif defined(SIMD)

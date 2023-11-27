@@ -19,7 +19,8 @@
 
 """
 Collection of functions to detect where the leaf data is stored.
-Generally internal for binary or regression, always external for multiclass
+Generally internal for binary or regression, always external for multiclass unless 
+specific flag (in EdenGarden) is set to true
 """
 
 from typing import Mapping, Optional
@@ -59,11 +60,14 @@ def _place_leaves(*, mode, root, children_right, leaf_value, threshold):
         start_leaf = n_leaves
         end_leaf = start_leaf + leaves_idx.sum()
         if mode == "internal":
-            threshold[start_idx:end_idx][leaves_idx] = leaf_value[start_leaf:end_leaf]
+            threshold[start_idx:end_idx][leaves_idx] = leaf_value.reshape(-1)[
+                start_leaf:end_leaf
+            ]
         else:
             children_right[start_idx:end_idx][leaves_idx] = np.arange(
                 start_leaf, end_leaf
             )
+        n_leaves += leaves_idx.sum()
     return children_right, threshold
 
 
@@ -145,3 +149,60 @@ def merge_leaves_in_thresholds(estimator_dict: Mapping):
         threshold[leaves_idxs] = np.asarray(tree["values"])
         tree["threshold"] = threshold.tolist()
     return estimator_dict
+
+
+def collapse_same_class_nodes(*, clf):
+    """
+    Parameters
+    ----------
+    clf :
+        A fitted sklearn estimator (a decision tree or a tree ensamble)
+    """
+    assert "classifier" in clf.__class__.__name__.lower(), "Classifier expected"
+    from sklearn.tree._tree import TREE_LEAF
+    from copy import deepcopy
+
+    # Taken from https://stackoverflow.com/questions/51397109/prune-unnecessary-leaves-in-sklearn-decisiontreeclassifier
+    def is_leaf(inner_tree, index):
+        # Check whether node is leaf node
+        return (
+            inner_tree.children_left[index] == TREE_LEAF
+            and inner_tree.children_right[index] == TREE_LEAF
+        )
+
+    def prune_index(inner_tree, decisions, index=0):
+        # Start pruning from the bottom - if we start from the top, we might miss
+        # nodes that become leaves during pruning.
+        # Do not use this directly - use prune_duplicate_leaves instead.
+        if not is_leaf(inner_tree, inner_tree.children_left[index]):
+            prune_index(inner_tree, decisions, inner_tree.children_left[index])
+        if not is_leaf(inner_tree, inner_tree.children_right[index]):
+            prune_index(inner_tree, decisions, inner_tree.children_right[index])
+
+        # Prune children if both children are leaves now and make the same decision:
+        if (
+            is_leaf(inner_tree, inner_tree.children_left[index])
+            and is_leaf(inner_tree, inner_tree.children_right[index])
+            and (decisions[index] == decisions[inner_tree.children_left[index]])
+            and (decisions[index] == decisions[inner_tree.children_right[index]])
+        ):
+            # turn node into a leaf by "unlinking" its children
+            # We cannot remove the elements in the array 
+            inner_tree.children_left[index] = TREE_LEAF
+            inner_tree.children_right[index] = TREE_LEAF
+            ##print("Merged {}".format(index), " -2 nodes")
+
+    def prune_duplicate_leaves(mdl):
+        # Remove leaves if both
+        decisions = (
+            mdl.tree_.value.argmax(axis=2).flatten().tolist()
+        )  # Decision for each node
+        prune_index(mdl.tree_, decisions)
+
+    clf = deepcopy(clf)
+    if hasattr(clf, "estimators_"):
+        for i, t in enumerate(clf.estimators_):
+            prune_duplicate_leaves(t)
+    else:
+        prune_duplicate_leaves(clf)
+    return clf

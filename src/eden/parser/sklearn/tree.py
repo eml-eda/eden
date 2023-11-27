@@ -24,6 +24,21 @@ import eden
 from copy import deepcopy
 
 
+def _visit_tree(tree):
+    lc = tree.children_left
+    rc = tree.children_right
+    stack = list()
+    pre_order = list()
+    stack.append(0)  # Root
+    while len(stack) > 0:
+        idx_nodo = stack.pop()
+        if idx_nodo >= 0:
+            pre_order.append(idx_nodo)
+            stack.append(rc[idx_nodo])
+            stack.append(lc[idx_nodo])
+    return np.asarray(pre_order)
+
+
 def _get_eden_leaf_value(n_features: int):
     # Used to keep track of all functions where it is used
     return n_features + 1
@@ -47,19 +62,40 @@ def parse_tree_data(
     for further processing. Leaves have feature index equal to tree_.LEAF
     """
     base_tree = estimator.tree_
-    n_nodes = len(base_tree.children_right)
+    # All the values read need to be changed with this logic
+    pre_order = _visit_tree(base_tree)
+    n_nodes = len(pre_order)  # Changed to account pruning
+
     # Indexes of leaves in the arrays
-    leaves_idxs = base_tree.children_left == _tree.TREE_LEAF
+    leaves_idxs = base_tree.children_left[pre_order] == _tree.TREE_LEAF
     nodes_idxs = ~leaves_idxs
-    # Extract the arrays
-    children_left = base_tree.children_left  # Not used in C, but maybe in future?
-    children_right = base_tree.children_right
-    threshold = base_tree.threshold
-    feature = base_tree.feature
+    # Extract the arrays - ALWAYS with pre-order, as there may be pruned indexes
+    children_left = base_tree.children_left[
+        pre_order
+    ]  # Not used in C, but maybe in future?
+    children_right = base_tree.children_right[pre_order]
+    threshold = base_tree.threshold[pre_order]
+    feature = base_tree.feature[pre_order]
+
     # Right index to shift, 0 for leaf nodes
+    # This changes if we merged nodes #TODO: Double-check if inference is infinite
+    diffs = np.diff(pre_order) - 1
+    differences = np.zeros(pre_order.shape[0], dtype=children_right.dtype)
+    differences[1:] = diffs
+    # if differences.max() > 1:
+    #    print("A merge has occurred, changing right shift")
     children_right[nodes_idxs] -= np.arange(n_nodes)[nodes_idxs]
+    # If we found a non-zero value, we go back and reduce the shift
+    for idx, val in enumerate(differences):
+        if val != 0:
+            for j in range(idx, -1, -1):
+                if nodes_idxs[j]:
+                    children_right[j] -= val
+                    break
+
+    # children_right[nodes_idxs] -= differences[nodes_idxs]
     # Save all nodes values for future works, only leaves are stored in C
-    node_value = base_tree.value  # [N_NODES, 1, N_CLASSES]
+    node_value = base_tree.value[pre_order]  # [N_NODES, 1, N_CLASSES]
     # Remove the unused middle dimension
     node_value = np.squeeze(node_value).reshape(
         len(threshold), -1
@@ -91,8 +127,10 @@ def parse_tree_data(
 
 def parse_tree_info(*, estimator):
     base_tree = estimator.tree_
-    max_depth = base_tree.max_depth
-    n_nodes = base_tree.node_count
-    n_leaves = (base_tree.children_left == _tree.TREE_LEAF).sum()
+    pre_order = _visit_tree(base_tree)
+    max_depth = base_tree.max_depth  # TODO: Fix for pruning
+    # We cannot use the base values if we pruned
+    n_nodes = len(base_tree.value[pre_order])
+    n_leaves = (base_tree.children_left[pre_order] == _tree.TREE_LEAF).sum()
     leaf_len = base_tree.value.shape[-1]
     return max_depth, n_nodes, n_leaves, leaf_len

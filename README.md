@@ -11,6 +11,7 @@ Examples on how to quantize, export and benchmark adaptive models can be found i
 
 ## Supported ensembles
 RandomForests, GradientBoosting and DecisionTrees should be easily exportable in C, while ExtraTrees and other flavours of BoostingEnsembles will be supported in future.
+Eden supports both classifiers with logits in the leaves (see the DecisionTreeClassifier implementation of Sklearn) and with only class labels stored (see the examples/ folder).
 
 ## Supported architectures
 - GAP8

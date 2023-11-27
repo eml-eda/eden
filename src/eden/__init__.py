@@ -30,5 +30,7 @@ More info at https://github.com/eml-eda/eden.
 
 import pkg_resources
 from .edengarden import EdenGarden
+from eden.optimization.quantization import quantize, quantize_alphas
+from eden.optimization.leaf_placer import collapse_same_class_nodes
 
 __version__ = pkg_resources.get_distribution("eden").version

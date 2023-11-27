@@ -2,8 +2,6 @@
     Static inference function for any supported EDEN bit-width
 */
 
-
-
 #include "eden.h"
 #ifndef DYNAMIC_INFERENCE
 void ensemble_inference(
@@ -49,8 +47,7 @@ void ensemble_inference(
             OUTPUT_CTYPE leaf = tree_prediction->threshold;
             #endif // EDEN_LEAF_STORE_EXTERNAL
         #endif // EDEN_NODE_ARRAY/STRUCT
-        accumulate(output, leaf);
-
+        accumulate(t, output, leaf);
 
 
         #if defined(GAP8) && (N_CORES>1) 
@@ -109,7 +106,7 @@ void ensemble_inference(
         OUTPUT_CTYPE leaf = tree_prediction->threshold;
         #endif // EDEN_LEAF_STORE_EXTERNAL
         #endif // EDEN_NODE_ARRAY/STRUCT
-        accumulate(output,leaf);
+        accumulate(t, output,leaf);
         #if defined(GAP8) && (N_CORES>1)
         }
         #endif 
@@ -152,7 +149,7 @@ void ensemble_inference(
             OUTPUT_CTYPE leaf = tree_prediction->threshold;
             #endif // EDEN_LEAF_STORE_EXTERNAL
         #endif // EDEN_NODE_ARRAY/STRUCT
-        accumulate(output, leaf);
+        accumulate(t, output, leaf);
         #if defined(GAP8) && (N_CORES>1)
         }
         #endif 

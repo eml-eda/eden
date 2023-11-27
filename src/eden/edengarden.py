@@ -26,6 +26,7 @@ from eden.utils import _compute_min_bits, _compute_ctype
 from eden.optimization.leaf_placer import (
     _get_optimal_leaves_placement,
     _place_leaves,
+    collapse_same_class_nodes,
 )
 from eden.codegen import export
 from typing import Tuple, Optional
@@ -45,6 +46,7 @@ class EdenGarden:
         input_qbits: Optional[int],
         output_qbits: Optional[int],
         quantization_aware_training: bool = False,
+        store_class_in_leaves: bool = False,
     ):
         """
         Init method, designed as in sklearn. No logic happens here.
@@ -65,6 +67,7 @@ class EdenGarden:
         self.input_range = input_range
         self.output_qbits = output_qbits
         self.quantization_aware_training = quantization_aware_training
+        self.store_class_in_leaves = store_class_in_leaves
 
     def fit(self, X_test: Optional[np.ndarray] = None):
         """
@@ -81,6 +84,12 @@ class EdenGarden:
         -------
         self
         """
+        # Modifies a copy of the estimator, values are kept in the arrays
+        # Only entries are removed, works only for SKLEARN
+        # TODO: Make this library-agnostic, or move it to parsers
+        if self.store_class_in_leaves:
+            self.estimator = collapse_same_class_nodes(clf=self.estimator)
+
         # Extract the needed statistics for deployment
         (
             self.n_estimators_,
@@ -96,7 +105,7 @@ class EdenGarden:
         if X_test is None:
             self.X_test_ = np.zeros((1, self.input_len_))
         else:
-            self.X_test = X_test
+            self.X_test_ = X_test
         # Some default bits, includes float
         self.input_bits_ = 32
         self.output_bits_ = 32
@@ -129,8 +138,16 @@ class EdenGarden:
             self.leaf_value_,
         ) = parse_estimator_data(estimator=self.estimator)
 
+        # Leaf preparation here
+        if self.store_class_in_leaves:
+            self.leaf_value_ = np.argmax(self.leaf_value_, axis=-1).reshape(-1, 1)
+            self.output_bits_ = _compute_min_bits(0, self.leaf_value_.max())
+            self.output_range_ = (0, self.leaf_value_.max())
+            # Eden sees leaves as already quantized
+            self.output_qbits_ = self.output_bits_
+            self.leaf_len_ = 1
         # Output quantization
-        if self.output_qbits is not None:
+        elif self.output_qbits is not None:
             self.output_range_ = get_output_range(estimator=self.estimator)
             self.leaf_value_ = quantize(
                 data=self.leaf_value_,
@@ -158,6 +175,9 @@ class EdenGarden:
         # Leaf - External vs Internal
         if self.leaf_len_ > 1:
             self.c_leaf_data_store_ = "external"
+        # Note that the leaves were already prepared in the fit
+        elif self.store_class_in_leaves:
+            self.c_leaf_data_store_ = "internal"
         else:
             self.c_leaf_data_store_ = _get_optimal_leaves_placement(
                 bits_children_right=self.children_right_bits_,
@@ -174,8 +194,6 @@ class EdenGarden:
             leaf_value=self.leaf_value_,
             threshold=self.threshold_,
         )
-        # Structure
-        # TODO: Here we could select the best approach
 
     def _prepare_deployment_ctypes(self):
         self.root_ctype_ = _compute_ctype(min_val=0, max_val=self.root_.max())
@@ -224,6 +242,8 @@ class EdenGarden:
         )
 
         if self.c_leaf_data_store_ == "internal":
+            # Compatibility var for templates
+            self.leaf_ltype_ = ""
             (
                 self.root_ltype_,
                 self.node_ltype_,
@@ -284,7 +304,9 @@ class EdenGarden:
                 leaf_buffer=leaf_buffer,
             )
 
-    def deploy(self, deployment_folder: str = "./eden-ensemble/"):
+    def deploy(
+        self, *, deployment_folder: str = "./eden-ensemble/", target: str = "all"
+    ):
         """
         Exports the current ensemble.
 
@@ -294,14 +316,20 @@ class EdenGarden:
             Path to the output directory, by default "./eden-ensemble/"
         """
         assert hasattr(self, "n_estimators_"), "Call .fit() first"
+        assert target in (
+            "all",
+            "gcc",
+            "pulpissimo",
+            "gap8",
+        ), f"Invalid target {target}"
         self._prepare_deployment_structures()
         self._prepare_deployment_ctypes()
         self._prepare_deployment_cache()
         # Finally export to C
-        self._dump_model(deployment_folder=deployment_folder)
+        self._dump_model(deployment_folder=deployment_folder, target=target)
 
-    def _dump_model(self, deployment_folder):
-        export(eden_model=self, deployment_folder=deployment_folder)
+    def _dump_model(self, *, deployment_folder: str, target: str):
+        export(eden_model=self, deployment_folder=deployment_folder, target=target)
 
     def __repr__(self):
         return vars(self)

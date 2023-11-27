@@ -17,8 +17,6 @@ Type declaration needed for running eden,
 #include <stdint.h>
 #endif
 
-
-
 // Ensemble types
 #define ROOTS_CTYPE ${data.root_ctype_} // Bits to store the roots
 #define INPUT_CTYPE ${data.input_ctype_} // Bits to store the input
@@ -44,6 +42,11 @@ Type declaration needed for running eden,
 %if data.c_leaf_data_store_=="internal":
 //#define EDEN_LEAF_STORE_EXTERNAL
 #define EDEN_LEAF_STORE_INTERNAL
+
+%if data.store_class_in_leaves:
+#define EDEN_STORE_CLASS_IDX 
+%endif
+
 %else:
 #define EDEN_LEAF_STORE_EXTERNAL
 //#define EDEN_LEAF_STORE_INTERNAL

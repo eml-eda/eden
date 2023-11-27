@@ -78,13 +78,13 @@ def parse_estimator_data(*, estimator):
         [],
     )
     estimators = (
+        # A single tree
         [estimator]
         if not hasattr(estimator, "estimators_")
+        # An ensemble
         else np.asarray(estimator.estimators_).reshape(-1)
     )
-    # A single tree
     n_nodes = 0
-    # An ensemble
     for tree in estimators:
         root.append(n_nodes)
         (

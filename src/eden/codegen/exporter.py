@@ -31,18 +31,44 @@ from copy import deepcopy
 from eden.codegen import _formatter as formatter
 
 DATA_DIR = pkg_resources.resource_filename("eden", "data")
+from sklearn.tree import plot_tree
+import matplotlib.pyplot as plt
+import shutil
+
+
+def plot_ensemble(model, path):
+    path = os.path.join(path, "logs")
+    shutil.rmtree(path, ignore_errors=True)
+    os.makedirs(name=path, exist_ok=True)
+    # Also store the test inputs
+    np.savetxt(os.path.join(path, "input-data.txt"), model.X_test_, fmt="%+i")
+    if hasattr(model.estimator, "estimators_"):
+        for idx, t in enumerate(model.estimator.estimators_):
+            plot_tree(t)
+            plt.savefig(os.path.join(path, f"tree_{idx}.png"))
+            plt.clf()
+    else:
+        plot_tree(model.estimator)
+        plt.savefig(os.path.join(path, f"tree_0.png"))
+        plt.clf()
 
 
 def export(
     *,
     eden_model: "EdenGarden",
     deployment_folder: str = "eden-ensemble",
+    target: str = "all",
 ):
     eden_model = deepcopy(eden_model)
     os.makedirs(name=deployment_folder, exist_ok=True)
+    # Plot each tree in ensemble using sklearn plotter
+    plot_ensemble(eden_model, path=deployment_folder)
     # Sub-dir in data/
     for root, dirs, files in os.walk(DATA_DIR):
         if len(files) == 0:
+            continue
+        if (target != "all") and ("common" not in root and target not in root):
+            # Skipped as it is for a different target
             continue
         tgt_dir = root.replace(DATA_DIR, deployment_folder)
         tgt_dir = tgt_dir.replace("common", "")
@@ -61,4 +87,9 @@ def export(
 
             file_extension = os.path.splitext(file_name)[1]
             if file_extension in [".c", ".h"]:
-                os.system(f"clang-format -i {os.path.join(tgt_dir,file_name)}")
+                try:
+                    import clang_format
+
+                    os.system(f"clang-format -i {os.path.join(tgt_dir,file_name)}")
+                except:
+                    pass

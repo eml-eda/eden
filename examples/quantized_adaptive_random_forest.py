@@ -21,6 +21,8 @@
 Simple example showing how to:
 1. Benchmark the quantized model in python
 2. Try an adaptive approach
+
+Note that this example is not using the Eden exporter (EdenGarden class)
 """
 
 import numpy as np
@@ -91,3 +93,4 @@ for idx, th in enumerate(THRESHOLDS):
         "Mean Trees Used: ",
         classifiers_used[idx].mean(),
     )
+    print("--" * 20)

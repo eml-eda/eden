@@ -3,17 +3,17 @@
 //{config.input_qparams}
 %if len(data.X_test_) == 1:
 INPUT_LTYPE INPUT_CTYPE INPUT[INPUT_LEN] = {
-    ${formatter.to_c_array(data.X_test_[0])}
+    ${formatter.to_c_array(data.X_test_[0], separator_string="")}
 };
 %else:
     %for idx in range(len(data.X_test_)):
         %if idx == 0:
-#if INPUT==${idx}
+#if INPUT_IDX==${idx}
         %else:
-#elif INPUT==${idx}
+#elif INPUT_IDX==${idx}
         %endif
 INPUT_LTYPE INPUT_CTYPE INPUT[INPUT_LEN] = {
-        ${formatter.to_c_array(data.X_test_[idx])}
+        ${formatter.to_c_array(data.X_test_[idx], separator_string="")}
     };
     %endfor
 #endif

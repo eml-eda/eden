@@ -13,7 +13,7 @@ where = ["src"]
 
 [project]
 name = "eden"
-version = "0.3"
+version = "0.4"
 authors = [
   { name="Francesco Daghero", email="francesco.daghero@polito.it" },
 ]
@@ -27,7 +27,8 @@ classifiers = [
 dependencies = [
   "numpy",
   "scikit-learn",
-  "mako"
+  "mako",
+  "clang-format"
 ]
 
 [project.optional-dependencies]

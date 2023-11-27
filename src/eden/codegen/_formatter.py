@@ -55,7 +55,8 @@ def to_c_array(array, separator_string: Optional[str] = "// Tree"):
         array = array.reshape(1, -1)
     for tree_idx in range(len(array)):
         if separator_string is not None:
-            array_str.append(f"{separator_string} {tree_idx}")
+            if separator_string != "":
+                array_str.append(f"{separator_string} {tree_idx}")
             for el in array[tree_idx]:
                 el = int(el) if el.is_integer() else el
                 array_str.append(f"{el}")
