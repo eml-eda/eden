@@ -58,11 +58,13 @@ def export(
     eden_model: "EdenGarden",
     deployment_folder: str = "eden-ensemble",
     target: str = "all",
+    export_plot_trees : bool = False
 ):
     eden_model = deepcopy(eden_model)
     os.makedirs(name=deployment_folder, exist_ok=True)
-    # Plot each tree in ensemble using sklearn plotter
-    plot_ensemble(eden_model, path=deployment_folder)
+    if export_plot_trees:
+        # Plot each tree in ensemble using sklearn plotter
+        plot_ensemble(eden_model, path=deployment_folder)
     # Sub-dir in data/
     for root, dirs, files in os.walk(DATA_DIR):
         if len(files) == 0:

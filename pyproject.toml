@@ -28,7 +28,8 @@ dependencies = [
   "numpy",
   "scikit-learn",
   "mako",
-  "clang-format"
+  "clang-format",
+  "matplotlib"
 ]
 
 [project.optional-dependencies]

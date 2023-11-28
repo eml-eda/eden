@@ -305,7 +305,7 @@ class EdenGarden:
             )
 
     def deploy(
-        self, *, deployment_folder: str = "./eden-ensemble/", target: str = "all"
+        self, *, deployment_folder: str = "./eden-ensemble/", target: str = "all", export_plot_trees : bool = False
     ):
         """
         Exports the current ensemble.
@@ -326,10 +326,10 @@ class EdenGarden:
         self._prepare_deployment_ctypes()
         self._prepare_deployment_cache()
         # Finally export to C
-        self._dump_model(deployment_folder=deployment_folder, target=target)
+        self._dump_model(deployment_folder=deployment_folder, target=target, export_plot_trees = export_plot_trees)
 
-    def _dump_model(self, *, deployment_folder: str, target: str):
-        export(eden_model=self, deployment_folder=deployment_folder, target=target)
+    def _dump_model(self, *, deployment_folder: str, target: str, export_plot_trees : bool ):
+        export(eden_model=self, deployment_folder=deployment_folder, target=target, export_plot_trees = export_plot_trees)
 
     def __repr__(self):
         return vars(self)
