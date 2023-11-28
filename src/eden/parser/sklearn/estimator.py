@@ -85,7 +85,7 @@ def parse_estimator_data(*, estimator):
         else np.asarray(estimator.estimators_).reshape(-1)
     )
     n_nodes = 0
-    for tree in estimators:
+    for idx, tree in enumerate(estimators):
         root.append(n_nodes)
         (
             tree_feature,

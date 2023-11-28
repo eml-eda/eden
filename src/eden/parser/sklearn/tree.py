@@ -82,16 +82,23 @@ def parse_tree_data(
     diffs = np.diff(pre_order) - 1
     differences = np.zeros(pre_order.shape[0], dtype=children_right.dtype)
     differences[1:] = diffs
-    # if differences.max() > 1:
-    #    print("A merge has occurred, changing right shift")
+    #
+    summed_differences = np.cumsum(differences) * (differences>0).astype(int)
+    for negative_shift, idx_node in zip(
+        summed_differences[summed_differences != 0],
+        pre_order[summed_differences != 0],
+    ):
+        idx_in_array = np.where(children_right == idx_node)[0].item()
+        children_right[idx_in_array] -= negative_shift
+
     children_right[nodes_idxs] -= np.arange(n_nodes)[nodes_idxs]
     # If we found a non-zero value, we go back and reduce the shift
-    for idx, val in enumerate(differences):
-        if val != 0:
-            for j in range(idx, -1, -1):
-                if nodes_idxs[j]:
-                    children_right[j] -= val
-                    break
+    # for idx, val in enumerate(differences):
+    #     if val != 0:
+    #         for j in range(idx, -1, -1):
+    #             if nodes_idxs[j]:
+    #                 children_right[j] -= val
+    #                 break
 
     # children_right[nodes_idxs] -= differences[nodes_idxs]
     # Save all nodes values for future works, only leaves are stored in C
@@ -115,6 +122,7 @@ def parse_tree_data(
     threshold[leaves_idxs] = 0
     feature[leaves_idxs] = _get_eden_leaf_value(n_features=base_tree.n_features)
     leaf_value = node_value[leaves_idxs]
+    assert (children_right == 0).sum() == len(leaf_value)
 
     return (
         feature,  # [N_NODES]

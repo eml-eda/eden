@@ -31,7 +31,7 @@ from sklearn.metrics import accuracy_score
 
 INPUT_BITS = 16
 OUTPUT_BITS = 8  # This is ignored and computed depending on the #Classes
-N_TREES = 3
+N_TREES = 100
 DEPTH = 4
 
 
