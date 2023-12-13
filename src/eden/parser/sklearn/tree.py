@@ -18,6 +18,7 @@
 # *--------------------------------------------------------------------------*
 
 from typing import Union, Mapping, Any, Tuple, List
+from sklearn.tree._tree import TREE_LEAF
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor, _tree
 import numpy as np
 import eden
@@ -73,34 +74,23 @@ def parse_tree_data(
     children_left = base_tree.children_left[
         pre_order
     ]  # Not used in C, but maybe in future?
+    # Before taking them in pre-order and post-pruning, we swap the index representation
+    # to the shift-based one
+    # Right index to shift, 0 for leaf nodes
+    children_right = np.copy(base_tree.children_right)
+    for i in range(len(base_tree.children_right)):
+        if children_right[i] != TREE_LEAF:
+            children_right[i] = children_right[i] - i
+        else:
+            children_right[i] = 0
+    assert np.max((children_right[pre_order] + np.arange(len(pre_order)))) < len(
+        pre_order
+    )
     children_right = base_tree.children_right[pre_order]
     threshold = base_tree.threshold[pre_order]
     feature = base_tree.feature[pre_order]
 
-    # Right index to shift, 0 for leaf nodes
-    # This changes if we merged nodes #TODO: Double-check if inference is infinite
-    diffs = np.diff(pre_order) - 1
-    differences = np.zeros(pre_order.shape[0], dtype=children_right.dtype)
-    differences[1:] = diffs
-    #
-    summed_differences = np.cumsum(differences) * (differences>0).astype(int)
-    for negative_shift, idx_node in zip(
-        summed_differences[summed_differences != 0],
-        pre_order[summed_differences != 0],
-    ):
-        idx_in_array = np.where(children_right == idx_node)[0].item()
-        children_right[idx_in_array] -= negative_shift
 
-    children_right[nodes_idxs] -= np.arange(n_nodes)[nodes_idxs]
-    # If we found a non-zero value, we go back and reduce the shift
-    # for idx, val in enumerate(differences):
-    #     if val != 0:
-    #         for j in range(idx, -1, -1):
-    #             if nodes_idxs[j]:
-    #                 children_right[j] -= val
-    #                 break
-
-    # children_right[nodes_idxs] -= differences[nodes_idxs]
     # Save all nodes values for future works, only leaves are stored in C
     node_value = base_tree.value[pre_order]  # [N_NODES, 1, N_CLASSES]
     # Remove the unused middle dimension
