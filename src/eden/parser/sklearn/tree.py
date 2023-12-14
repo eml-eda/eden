@@ -86,7 +86,7 @@ def parse_tree_data(
     assert np.max((children_right[pre_order] + np.arange(len(pre_order)))) < len(
         pre_order
     )
-    children_right = base_tree.children_right[pre_order]
+    children_right = children_right[pre_order]
     threshold = base_tree.threshold[pre_order]
     feature = base_tree.feature[pre_order]
 

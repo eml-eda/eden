@@ -3,12 +3,13 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
 from eden import EdenGarden, quantize, collapse_same_class_nodes
+import subprocess
 
 import pytest
 from subprocess import STDOUT, check_output
 
-@pytest.mark.parametrize("n_trees", [1, 2, 3, 4, 5])
-@pytest.mark.parametrize("depth", [1, 2, 3, 4])
+@pytest.mark.parametrize("n_trees", [1, 2, 3, 4, 5], ids = [f"n_trees={i}" for i in range(1,6)])
+@pytest.mark.parametrize("depth", [1, 2, 3, 4, 5], ids = [f"depth={i}" for i in range(1,6)])
 def test_ensemble(n_trees, depth, request):
     X, y = load_iris(return_X_y=True)
     X_train, X_test, y_train, y_test = train_test_split(
@@ -41,7 +42,9 @@ def test_ensemble(n_trees, depth, request):
     print("DEploy")
 
     for i in range(len(X_test)):
+        print("Parsing input ", i)
         output = check_output(
-            f"cd eden-ensemble/gcc && make all run INPUT_IDX={i} ", stderr=STDOUT, timeout=20, shell = True
+            f"cd eden-ensemble/gcc && make all run INPUT_IDX={i} ", stderr=STDOUT, timeout=15, shell = True
         )
-        print(output)
+
+

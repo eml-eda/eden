@@ -3,3 +3,4 @@ mako
 scikit-learn
 clang-format
 black
+pytest
