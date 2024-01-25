@@ -26,15 +26,15 @@ while (leftover_start < ${config.output_length}) {
 </%def>
 
 <%def name="accumulate_classification_ovo(config)">
-output[t%N_CLASSES] += alphas[children_right[current_idx]];
+output[t%N_CLASSES] += alphas[current_idx];
 </%def>
 
 <%def name="accumulate_classification_binary(config)">
-output[0] += alphas[children_right[current_idx]];
+output[0] += alphas[current_idx];
 </%def>
 
 <%def name="accumulate_regression(config)">
-output[0] += alphas[children_right[current_idx]];
+output[0] += alphas[current_idx];
 </%def>
 
 <%def name="accumulate_classification_labels(config)">

@@ -14,7 +14,7 @@ def ensemble_to_c_arrays(
         cr, f, al, le = tree_to_c_arrays(tree=tree)
         # Leaves outside
         leaves_idx = f == (ensemble.input_length)
-        if ensemble.task == "classification_multiclass" and le.shape[-1] > 1:
+        if ensemble.task == "classification_multiclass" and le.shape[-1] > 2:
             cr[leaves_idx] = np.arange(n_leaves, n_leaves + le.shape[0])
             leaves.append(le)
         # Leaves inside, directly

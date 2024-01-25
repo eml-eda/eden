@@ -142,7 +142,7 @@ class Ensemble:
         if leaves is not None:
             memory_cost["leaves"] = leaves.nbytes
             memory_cost["output"] = self.output_length * leaves.dtype.itemsize
-        elif self.task in ["classification_multiclass_ovo", "regression"]:
+        elif self.task in ["classification_multiclass_ovo", "regression", "classification_multiclass"]:
             memory_cost["output"] = self.output_length * alphas.dtype.itemsize
         elif self.task == "classification_label":
             memory_cost["output"] = self.output_length * children_right.dtype.itemsize

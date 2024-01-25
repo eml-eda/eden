@@ -62,7 +62,8 @@ class Deployment:
         self.n_nodes = len(self.features)
         self.n_estimators = n_estimators
         self.input_length = input_length
-        self.output_length = output_length
+        if self.task == "classification_multiclass" and output_length == 2:
+            self.output_length = 1
         self.leaf_length = leaves.shape[-1] if leaves is not None else 1
 
         self.bits_output = memory_cost["output"] * 8 / output_length
@@ -233,6 +234,7 @@ if __name__ == "__main__":
 
     iris = load_iris()
     iris_qdata = quantize(data = iris.data, precision=8, min_val= iris.data.min(), max_val=iris.data.max())
+    iris.target = [0 if i == 0 else 1 for i in iris.target]
     model = RandomForestClassifier(
         n_estimators=10, random_state=0, max_depth=7, min_samples_leaf=10
     )
