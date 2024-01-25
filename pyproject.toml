@@ -9,26 +9,26 @@ include-package-data = false
 where = ["src"]
 
 [tool.setuptools.package-data]
-"*" = ["*.c", "*.h", "Makefile", "*.json"]
+"*" = ["*.t", "*.c", "*.h", "Makefile", "*.json"]
 
 [project]
 name = "eden"
-version = "0.4"
+version = "1.0"
 authors = [
   { name="Francesco Daghero", email="francesco.daghero@polito.it" },
 ]
 description = "EDEN: Efficienct Decision Tree Ensembles"
 readme = "README.md"
 license = { file="LICENSE" }
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 classifiers = [
     "Programming Language :: Python :: 3",
 ]
 dependencies = [
   "numpy",
   "scikit-learn",
+  "bigtree",
   "mako",
-  "clang-format",
   "matplotlib"
 ]
 

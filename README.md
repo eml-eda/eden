@@ -16,7 +16,7 @@ Eden supports both classifiers with logits in the leaves (see the DecisionTreeCl
 ## Supported architectures
 - GAP8
 - Pulpissimo
-- Gcc (no custom instructions)
+- x86 (no custom instructions)
 
 ## Citing 
 If you use our code, please cite our paper:

@@ -16,15 +16,5 @@
 # *                                                                          *
 # * Author: Francesco Daghero francesco.daghero@polito.it                    *
 # *--------------------------------------------------------------------------*
-""" 
-EDEN: Efficient Decision tree Ensemble
-======================================
 
-eden is a python module that enables a fast deployment of tree-based models at the edge.
-
-More info at https://github.com/eml-eda/eden.
-"""
-
-import pkg_resources
-
-__version__ = pkg_resources.get_distribution("eden").version
+from .ensemble import parse_random_forest

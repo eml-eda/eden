@@ -4,6 +4,7 @@
 /data/
 /eden-ensemble/
 # PULP build folder
+generated_tests/
 BUILD/ 
 compile_folder/
 compile_autogen/
