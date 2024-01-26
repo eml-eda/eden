@@ -44,6 +44,10 @@ class Deployment:
         output_length,
         input_length,
         input_data,
+        alpha_scale,
+        alpha_zero_point,
+        leaf_scale,
+        leaf_zero_point
     ):
         self.children_right = children_right
         self.features = features
@@ -55,6 +59,10 @@ class Deployment:
         self.task = task
         # Disabled atm
         self.data_structure = "array"
+        self.alpha_scale = alpha_scale
+        self.alpha_zero_point = alpha_zero_point
+        self.leaf_scale = leaf_scale
+        self.leaf_zero_point = leaf_zero_point
         assert self.data_structure in ["array", "struct"]
 
         # Extract the statistics of the ensemble
@@ -64,6 +72,8 @@ class Deployment:
         self.input_length = input_length
         if self.task == "classification_multiclass" and output_length == 2:
             self.output_length = 1
+        else:
+            self.output_length = output_length
         self.leaf_length = leaves.shape[-1] if leaves is not None else 1
 
         self.bits_output = memory_cost["output"] * 8 / output_length
@@ -157,6 +167,10 @@ def deploy_model(
         access_cost=access_cost,
         output_length=ensemble.output_length,
         input_length=ensemble.input_length,
+        alpha_scale=ensemble.alpha_scale,
+        alpha_zero_point=ensemble.alpha_zero_point,
+        leaf_scale=ensemble.leaf_scale,
+        leaf_zero_point=ensemble.leaf_zero_point
     )
 
     # Write the data template.
@@ -222,9 +236,10 @@ def deploy_model(
 
 
 if __name__ == "__main__":
-    from sklearn.datasets import load_iris
-    from sklearn.ensemble import RandomForestClassifier
+    from sklearn.datasets import load_iris, load_diabetes
+    from sklearn.ensemble import RandomForestRegressor
     from eden.frontend.sklearn import parse_random_forest
+    from bigtree import print_tree
     from eden.transform.quantization import (
         quantize_leaves,
         quantize_post_training_alphas,
@@ -232,20 +247,28 @@ if __name__ == "__main__":
         quantize
     )
 
-    iris = load_iris()
-    iris_qdata = quantize(data = iris.data, precision=8, min_val= iris.data.min(), max_val=iris.data.max())
-    iris.target = [0 if i == 0 else 1 for i in iris.target]
-    model = RandomForestClassifier(
-        n_estimators=10, random_state=0, max_depth=7, min_samples_leaf=10
+    iris = load_diabetes()
+    iris_qdata, _, _ = quantize(data = iris.data, precision=8, min_val= iris.data.min(), max_val=iris.data.max())
+    #iris.target = [0 if i == 0 else 1 for i in iris.target]
+    model = RandomForestRegressor(
+        n_estimators=1, random_state=0, max_depth=3, min_samples_leaf=10
     )
 
     model.fit(iris_qdata, iris.target)
-    print(model.predict_proba(iris_qdata)[:10])
+    preds = np.zeros((1, 10))
+    for tree_idx, tree in enumerate(model.estimators_):
+        preds[tree_idx] = tree.predict(iris_qdata[:10])
+    print(preds.sum(axis = 0))
     mod = parse_random_forest(model=model)
-    quantized = quantize_leaves(estimator=mod, precision=8)
+    print_tree(mod.flat_trees[0], attr_list=["alpha", "values"])
+    quantized = quantize_leaves(estimator=mod, precision=32)
     data_min, data_max = iris.data.min(), iris.data.max()
     #quantized =quantize_post_training_alphas(estimator=quantized, precision=8, min_val= data_min, max_val=data_max)
-    quantized = quantize_pre_training_alphas(estimator=quantized, precision=8)
+    quantized = quantize_pre_training_alphas(estimator=quantized, precision=8, min_val= data_min, max_val=data_max)
 
+    print_tree(quantized.flat_trees[0], attr_list=["alpha", "values"])
     deploy_model(ensemble=quantized, target="default", output_path="generated_tests", input_data=iris_qdata)
-    print(quantized.predict(iris_qdata).sum(axis=1)[:10])
+    print((quantized.predict(iris_qdata).sum(axis=1)[:10] - quantized.leaf_zero_point) * quantized.leaf_scale)
+    np.set_printoptions(suppress=True, formatter={'float_kind':'{:0.2f}'.format})
+    print((quantized.predict(iris_qdata).sum(axis=1)[:10] ))
+    print(quantized.leaf_scale, quantized.leaf_zero_point)

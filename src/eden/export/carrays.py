@@ -15,17 +15,26 @@ def ensemble_to_c_arrays(
         # Leaves outside
         leaves_idx = f == (ensemble.input_length)
         if ensemble.task == "classification_multiclass" and le.shape[-1] > 2:
-            cr[leaves_idx] = np.arange(n_leaves, n_leaves + le.shape[0])
+            # Update the dtype in case
+            leaf_range = np.arange(n_leaves, n_leaves + le.shape[0])
+            cr = cr.astype(max(np.min_scalar_type(leaf_range.max()), cr.dtype))
+            cr[leaves_idx] = leaf_range
             leaves.append(le)
         # Leaves inside, directly
         elif ensemble.task in ["classification_multiclass_ovo", "regression"]:
+            le_typed = le.reshape(-1).astype(np.min_scalar_type(le.max()))
+            al = al.astype(max(le_typed.dtype, al.dtype))
             al[leaves_idx] = le.reshape(-1)
         # Leaves inside, but in the right
         elif ensemble.task == "classification_label":
-            cr[leaves_idx] = le.argmax(axis=-1)
+            classes = le.argmax(axis=-1)
+            cr = cr.astype(max(np.min_scalar_type(classes.max()), cr.dtype))
+            cr[leaves_idx] = classes
         # Leaves inside, binary classification case
         else:
-            al[leaves_idx] = le[:, 1].reshape(-1)
+            le_typed = le[:, 1].reshape(-1).astype(np.min_scalar_type(le.max()))
+            al = al.astype(max(le_typed.dtype, al.dtype))
+            al[leaves_idx] = le_typed
 
         roots.append(n_nodes)
         children_right.append(cr)
@@ -46,11 +55,11 @@ def ensemble_to_c_arrays(
     features = np.concatenate(features)
 
     # Cast to correct dtype
-    features = features.astype(_compute_nptype("uint", 0, ensemble.input_length))
+    features = features.astype(np.min_scalar_type(ensemble.input_length))
     children_right = children_right.astype(
-        _compute_nptype("uint", 0, children_right.max())
+        np.min_scalar_type(children_right.max())
     )
-    roots = roots.astype(_compute_nptype("uint", 0, roots.max()))
+    roots = roots.astype(np.min_scalar_type(roots.max()))
 
     # Never change this order, half package depends on it
     return children_right, features, alphas, leaves, roots
@@ -64,10 +73,10 @@ def tree_to_c_arrays(tree):
     alphas, features, children_right, values = (
         np.zeros(len(preorder_nodes), dtype=tree.alpha.dtype),
         np.zeros(
-            len(preorder_nodes), dtype=_compute_nptype("uint", 0, tree.input_length)
+            len(preorder_nodes), dtype=np.min_scalar_type(tree.input_length)
         ),
         np.zeros(
-            len(preorder_nodes), dtype=_compute_nptype("uint", 0, 2**tree.max_depth)
+            len(preorder_nodes), dtype=np.min_scalar_type(2**tree.max_depth)
         ),
         np.zeros(
             (len(preorder_nodes), tree.values.shape[-1]),

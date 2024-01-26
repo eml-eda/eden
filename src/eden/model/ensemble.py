@@ -28,6 +28,12 @@ class Ensemble:
         self.output_length = output_length
         self.aggreagate_function = aggregate_function
 
+        # Variables modified by the quantization functions, set to None by default
+        self.alpha_scale = None
+        self.alpha_zero_point = None
+        self.leaf_scale = None
+        self.leaf_zero_point = None
+
     # Always check the root node of the first tree,
     #  leaves still have unquantized values for thresholds
     @property
@@ -95,15 +101,17 @@ class Ensemble:
         else:
             min_max = np.zeros((self.output_length, 2))
             # For RFs or models with probabilities, the min is 0 and the max is N_trees
-            for estimator in self.trees:
-                for tree in estimator:
-                    values = [leaf.values for leaf in tree.leaves]
-                    min_max[0, 0] += min(values)
-                    min_max[0, 1] += max(values)
+            for idx, tree in enumerate(self.flat_trees):
+                values = [leaf.values for leaf in tree.leaves]
+                if idx>0:
+                    min_max[0, 0] = min(min(values), min_max[0, 0])
+                else:
+                    min_max[0, 0] = min(values)
+                min_max[0, 1] += max(values)
         min_val, max_val = min_max[:, 0].min(), min_max[:, 1].max()
         return min_val, max_val
 
-    def predict(self, X, n_cores=1) -> np.ndarray:
+    def predict(self, X) -> np.ndarray:
         """
         Recursive prediction function for the ensemble.
 
@@ -111,9 +119,6 @@ class Ensemble:
         ----------
         X : np.ndarray
             The input data
-        n_cores : int, optional
-            Cores to be used, currently disabled, by default 1
-
         Returns
         -------
         np.ndarray
@@ -124,8 +129,6 @@ class Ensemble:
         for idx, tree in enumerate(self.flat_trees):
             for i_idx, x_in in enumerate(X):
                 predictions[i_idx, idx] = tree.predict(x_in)
-        # if self.aggregate_function is not None:
-        #    self.aggreagate_function(predictions)
         return predictions
 
     def get_memory_cost(self):
