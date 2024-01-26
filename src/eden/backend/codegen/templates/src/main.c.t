@@ -6,7 +6,11 @@
 #include <ensemble_data.h>
 
 // Default is to use the ensemble_arrays function
+%if config.data_structure == "struct":
+${ensemble.ensemble_struct(config)}
+%elif config.data_structure == "arrays":
 ${ensemble.ensemble_arrays(config)}
+%endif 
 
 
 // Main function, init stuff , call "inference()" and then print

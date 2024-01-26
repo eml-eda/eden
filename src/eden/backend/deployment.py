@@ -47,8 +47,10 @@ class Deployment:
         alpha_scale,
         alpha_zero_point,
         leaf_scale,
-        leaf_zero_point
+        leaf_zero_point,
+        data_structure,
     ):
+        assert data_structure in ["arrays", "struct"]
         self.children_right = children_right
         self.features = features
         self.alphas = alphas
@@ -57,13 +59,11 @@ class Deployment:
         self.input_data = input_data
         self.target = target
         self.task = task
-        # Disabled atm
-        self.data_structure = "array"
+        self.data_structure =  data_structure
         self.alpha_scale = alpha_scale
         self.alpha_zero_point = alpha_zero_point
         self.leaf_scale = leaf_scale
         self.leaf_zero_point = leaf_zero_point
-        assert self.data_structure in ["array", "struct"]
 
         # Extract the statistics of the ensemble
         self.n_trees = len(self.roots)
@@ -86,18 +86,18 @@ class Deployment:
 
         # Extract the ctypes/vtypes
         if self.leaves is not None:
-            self.output_ctype = nptype_to_ctype(self.leaves.dtype)
+            self.output_ctype = nptype_to_ctype(dtype = self.leaves.dtype)
         elif self.task in ["classification_multiclass_ovo", "regression"]:
-            self.output_ctype = nptype_to_ctype(self.alphas.dtype)
+            self.output_ctype = nptype_to_ctype(dtype = self.alphas.dtype)
         else:
-            self.output_ctype = nptype_to_ctype(self.children_right.dtype)
+            self.output_ctype = nptype_to_ctype(dtype = self.children_right.dtype)
 
         self.output_vtype = ctype_to_vtype(self.output_ctype)
-        self.child_right_ctype = nptype_to_ctype(self.children_right.dtype)
-        self.alpha_ctype = nptype_to_ctype(self.alphas.dtype)
-        self.feature_ctype = nptype_to_ctype(self.features.dtype)
-        self.root_ctype = nptype_to_ctype(self.roots.dtype)
-        self.input_ctype = nptype_to_ctype(self.alphas.dtype)
+        self.child_right_ctype = nptype_to_ctype(dtype = self.children_right.dtype)
+        self.alpha_ctype = nptype_to_ctype(dtype = self.alphas.dtype)
+        self.feature_ctype = nptype_to_ctype(dtype = self.features.dtype)
+        self.root_ctype = nptype_to_ctype(dtype = self.roots.dtype)
+        self.input_ctype = nptype_to_ctype(dtype = self.input_data.dtype)
 
         self.buffer_allocation = defaultdict(lambda : "")
         # Select the ltype if necessary
@@ -139,7 +139,7 @@ class Deployment:
 
 
 def deploy_model(
-    *, ensemble, output_path, target="default", input_data: Optional[np.ndarray] = None
+    *, ensemble, output_path, target="default", input_data: Optional[np.ndarray] = None, data_structure : str,
 ):
     target = target.lower()
     assert target in ["gap8", "pulpissimo", "default"], "Target must be GAP8 or GAP9"
@@ -149,8 +149,8 @@ def deploy_model(
     )
 
     # Get the memory cost of each array.
-    memory_cost = ensemble.get_memory_cost()
-    access_cost = ensemble.get_access_cost()
+    memory_cost = ensemble.get_memory_cost(data_structure = data_structure)
+    access_cost = ensemble.get_access_cost(data_structure = data_structure)
 
     # All the logic is inside this class
     config = Deployment(
@@ -170,7 +170,8 @@ def deploy_model(
         alpha_scale=ensemble.alpha_scale,
         alpha_zero_point=ensemble.alpha_zero_point,
         leaf_scale=ensemble.leaf_scale,
-        leaf_zero_point=ensemble.leaf_zero_point
+        leaf_zero_point=ensemble.leaf_zero_point,
+        data_structure=data_structure
     )
 
     # Write the data template.
@@ -261,14 +262,14 @@ if __name__ == "__main__":
     print(preds.sum(axis = 0))
     mod = parse_random_forest(model=model)
     print_tree(mod.flat_trees[0], attr_list=["alpha", "values"])
-    quantized = quantize_leaves(estimator=mod, precision=32)
+    #quantized = quantize_leaves(estimator=mod, precision=32)
     data_min, data_max = iris.data.min(), iris.data.max()
     #quantized =quantize_post_training_alphas(estimator=quantized, precision=8, min_val= data_min, max_val=data_max)
-    quantized = quantize_pre_training_alphas(estimator=quantized, precision=8, min_val= data_min, max_val=data_max)
+    quantized = quantize_pre_training_alphas(estimator=mod, precision=8, min_val= data_min, max_val=data_max)
 
     print_tree(quantized.flat_trees[0], attr_list=["alpha", "values"])
-    deploy_model(ensemble=quantized, target="default", output_path="generated_tests", input_data=iris_qdata)
-    print((quantized.predict(iris_qdata).sum(axis=1)[:10] - quantized.leaf_zero_point) * quantized.leaf_scale)
+    deploy_model(ensemble=quantized, target="default", output_path="generated_tests", input_data=iris_qdata, data_structure="arrays")
+    #print((quantized.predict(iris_qdata).sum(axis=1)[:10] - quantized.leaf_zero_point) * quantized.leaf_scale)
     np.set_printoptions(suppress=True, formatter={'float_kind':'{:0.2f}'.format})
     print((quantized.predict(iris_qdata).sum(axis=1)[:10] ))
     print(quantized.leaf_scale, quantized.leaf_zero_point)

@@ -13,8 +13,8 @@ def ctype_to_vtype(ctype: str):
     return vtype
 
 
-def nptype_to_ctype(dtype):
-    if dtype == np.float32:
+def nptype_to_ctype(*, dtype : np.dtype) -> str:
+    if "float" in dtype.name:
         return "float"
     elif dtype == np.uint16:
         return "uint16_t"
@@ -31,7 +31,7 @@ def nptype_to_ctype(dtype):
     raise NotImplementedError(f"Type {dtype} not supported")
 
 
-def to_node_struct(root_data, feature_idx_data, threshold_data, right_child_data):
+def to_node_struct(root_data, feature_idx_data, alpha_data, right_child_data):
     node_str = list()
     for tree_idx in range(len(root_data)):
         node_str.append(f"// Tree {tree_idx}")
@@ -40,13 +40,13 @@ def to_node_struct(root_data, feature_idx_data, threshold_data, right_child_data
             idx_end = len(feature_idx_data)
         else:
             idx_end = root_data[tree_idx + 1]
-        for f_idx, th, r_c in zip(
+        for f_idx, al, r_c in zip(
             feature_idx_data[idx_start:idx_end],
-            threshold_data[idx_start:idx_end],
+            alpha_data[idx_start:idx_end],
             right_child_data[idx_start:idx_end],
         ):
-            th = int(th) if th.is_integer() else th
-            node_str.append("{" + f"{f_idx}, {th}, {r_c}" + "}")
+            al = int(al) if al.is_integer() else al
+            node_str.append("{" + f".feature={f_idx}, .alpha={al}, .child_right={r_c}" + "}")
     node_str = ",\n".join(node_str)
     return node_str
 

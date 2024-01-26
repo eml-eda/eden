@@ -15,7 +15,7 @@ def quantize(
     method: str = "clip",
 ) -> Tuple[np.ndarray, float, float]:
     """
-    Base quantization function for alphas and inputs.
+    Base unsigned quantization function for alphas and inputs.
 
     Parameters
     ----------
@@ -31,7 +31,7 @@ def quantize(
     Returns
     -------
     np.ndarray
-        A quantized copy of data
+        A quantized copy of data, with the right dtype
     float
         Scale factor
     float
@@ -47,7 +47,7 @@ def quantize(
     else:
         data = np.trunc(data / scale + zero_point).astype(int)
     data = np.clip(a=data, a_min=qmin, a_max=qmax).astype(
-        nptype_from_name("uint", precision)
+        np.min_scalar_type(qmax)
     )
     return data, scale, zero_point
 

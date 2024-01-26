@@ -43,12 +43,12 @@ typedef uint16_t v2u __attribute__ ((vector_size (4)));
 
 %if config.data_structure == "struct":
 // Data structures
-typedef struct NodeStruct
+struct Node
 {
     ${config.feature_ctype} feature;
     ${config.alpha_ctype} alpha;
-    ${config.child_right_ctype} children_right;
-} node;
+    ${config.child_right_ctype} child_right;
+};
 %endif
 
 #endif //__ENSEMBLE_H__

@@ -63,4 +63,8 @@ all:
 run:
 	./BUILD/ensemble.bin
 
+codesize:
+	size --format=GNU BUILD/ensemble.bin
+
+
 %endif

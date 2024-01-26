@@ -7,10 +7,10 @@ ${config.buffer_allocation["roots"]} ${config.root_ctype} ROOTS[N_TREES] = {
 };
 
 %if config.data_structure == "struct":
-${config.buffer_allocation["nodes"]} node_struct NODES[N_NODES] = {
+${config.buffer_allocation["nodes"]} struct Node NODES[N_NODES] = {
     ${config.nodes_str}
 };
-%elif config.data_structure == "array":
+%elif config.data_structure == "arrays":
 
 ${config.buffer_allocation["features"]} ${config.feature_ctype} FEATURES[N_NODES] = {
     ${config.features_str}

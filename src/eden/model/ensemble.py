@@ -131,7 +131,8 @@ class Ensemble:
                 predictions[i_idx, idx] = tree.predict(x_in)
         return predictions
 
-    def get_memory_cost(self):
+    def get_memory_cost(self, data_structure = "arrays"):
+        assert data_structure in ["arrays", "struct"]   
         children_right, features, alphas, leaves, roots = ensemble_to_c_arrays(
             ensemble=self
         )
@@ -149,9 +150,14 @@ class Ensemble:
             memory_cost["output"] = self.output_length * alphas.dtype.itemsize
         elif self.task == "classification_label":
             memory_cost["output"] = self.output_length * children_right.dtype.itemsize
+        
+        if data_structure == "struct":
+            memory_cost["nodes"] = memory_cost["children_right"] + memory_cost["features"] + memory_cost["alphas"]
+            memory_cost.pop("children_right"), memory_cost.pop("features"), memory_cost.pop("alphas")
         return memory_cost
 
-    def get_access_cost(self):
+    def get_access_cost(self, data_structure = "arrays"):
+        assert data_structure in ["arrays", "struct"]   
         children_right, features, alphas, leaves, roots = ensemble_to_c_arrays(
             ensemble=self
         )
@@ -165,6 +171,10 @@ class Ensemble:
         if leaves is not None:
             access_cost["leaves"] = self.n_trees
         access_cost["output"] = self.n_trees * self.output_length
+
+        if data_structure == "struct":
+            access_cost["nodes"] = access_cost["children_right"] + access_cost["features"] + access_cost["alphas"]
+            access_cost.pop("children_right"), access_cost.pop("features"), access_cost.pop("alphas")
         return access_cost
 
     def __str__(self) -> str:
