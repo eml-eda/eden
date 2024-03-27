@@ -19,10 +19,10 @@
 
 
 from sklearn.tree import BaseDecisionTree, DecisionTreeClassifier
-from sklearn.tree._tree import TREE_LEAF
 from eden.model.node import Node
 from bigtree import print_tree
 import numpy as np
+from sklearn.tree._tree import TREE_LEAF
 
 
 def parse_tree(model: BaseDecisionTree) -> Node:
