@@ -17,6 +17,7 @@
  # *  Author: Francesco Daghero francesco.daghero@polito.it
  # * --------------------------------------------------------------------------
 
+INPUT_IDX?=0
 C_SRCS = $(wildcard src/*.c)
 C_FLAGS = -O3 -Iinclude -DINPUT_IDX=$(INPUT_IDX)
 

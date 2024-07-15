@@ -1,4 +1,5 @@
 import numpy as np
+from eden.model.ensemble import Ensemble
 from typing import Literal, Iterable, Tuple
 import logging
 from copy import deepcopy
@@ -95,7 +96,7 @@ def quantize_post_training_alphas(estimator, precision, min_val=None, max_val=No
     return qestimator
 
 
-def quantize_pre_training_alphas(estimator, precision, min_val, max_val):
+def quantize_pre_training_alphas(estimator, precision, min_val, max_val) -> Ensemble:
     assert precision in [8, 16, 32], "Precision must be 8, 16 or 32"
 
     # Unsigned quantization

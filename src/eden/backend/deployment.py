@@ -139,14 +139,17 @@ class Deployment:
 
 
 def deploy_model(
-    *, ensemble, output_path, target="default", input_data: Optional[np.ndarray] = None, data_structure : str,
+    *, ensemble, output_path, target="default", input_data: Optional[np.ndarray] = None, data_structure : str, 
 ):
     target = target.lower()
     assert target in ["gap8", "pulpissimo", "default"], "Target must be GAP8 or GAP9"
+    assert data_structure in ["arrays", "vector"]
     # Get the model arrays
-    children_right, features, alphas, leaves, roots = ensemble_to_c_arrays(
-        ensemble=ensemble
-    )
+    if data_structure == "arrays":
+        children_right, features, alphas, leaves, roots = ensemble_to_c_arrays(
+            ensemble=ensemble
+        )
+
 
     # Get the memory cost of each array.
     memory_cost = ensemble.get_memory_cost(data_structure = data_structure)

@@ -17,63 +17,80 @@
 # * Author: Francesco Daghero francesco.daghero@polito.it                    *
 # *--------------------------------------------------------------------------*
 
-# Simple script to show how to export a quantized Random Forest in C
-# N.B Quantization is performed inside the EdenGarden class, if you want to
-# benchmark the accuracy of the model, see the other example.
-
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
-from eden import EdenGarden, quantize, collapse_same_class_nodes
 from sklearn.metrics import accuracy_score
+from eden.transform.quantization import (
+    quantize,
+    quantize_leaves,
+    quantize_post_training_alphas,
+    quantize_pre_training_alphas,
+)
+from eden.frontend.sklearn.ensemble import parse_random_forest
+from eden.transform.pruning import prune_same_class_leaves
+from eden.backend.deployment import deploy_model
+from eden.model.ensemble import Ensemble
+from scipy.stats import mode
+np.random.seed(0)
 
 
-INPUT_BITS = 16
+
+INPUT_BITS = 8
 OUTPUT_BITS = 8  # This is ignored and computed depending on the #Classes
-N_TREES = 100
-DEPTH = 4
+N_TREES = 20
+DEPTH = 8
 
 
 X, y = load_iris(return_X_y=True)
+X_min, X_max = X.min(), X.max()
+X, _, _ = quantize(data=X, min_val=X.min(), max_val=X.max(), precision=INPUT_BITS)
 X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.2, stratify=y, random_state=0
 )
-X_min, X_max = X_train.min(), X_train.max()
-X_train = quantize(data=X_train, min_val=X_min, max_val=X_max, bits=INPUT_BITS)
-X_test = quantize(data=X_test, min_val=X_min, max_val=X_max, bits=INPUT_BITS)
-
 
 model = RandomForestClassifier(
     random_state=0, n_estimators=N_TREES, max_depth=DEPTH, min_samples_leaf=4
 )
 model.fit(X_train, y_train)
 
-
-# Quantize the model (N.B alphas are quantized post-training)
-eden_model = EdenGarden(
-    estimator=model,
-    input_range=(X_train.min(), X_train.max()),
-    input_qbits=16,
-    output_qbits=None,
-    quantization_aware_training=True,
-    store_class_in_leaves=True,
+emodel : Ensemble = parse_random_forest(model=model)
+emodel = quantize_pre_training_alphas(
+    estimator=emodel, precision=INPUT_BITS, min_val=X_min, max_val=X_max
 )
-# Utility method to convert the forest in a C-like format.
-# Use the argument X_test to specify custom input data to write in C.
-eden_model.fit(X_test)
+emodel : Ensemble = prune_same_class_leaves(estimator=emodel)
 
-# Let's benchmark the accuracy after pruning
-print(
-    "Eden nodes:",
-    eden_model.n_nodes_,
-    "First 10 inputs results",
-    model.predict(X_test)[:10],
-)
+qpredictions = emodel.predict(X).squeeze(-1)
+qmodes = mode(qpredictions, 1)
+qclasses = qmodes.mode
+qcounts = qmodes.count
+# Convert the votes in qpredictions in the final predictions
 
+
+predictions = model.predict(X)
+print("FP-Accuracy", accuracy_score(y, predictions))
+print("Q-Accuracy", accuracy_score(y, qclasses))
+
+# Take 10 inputs to deploy, randomly
+ridx = np.random.randint(low =0, high = y.shape[0], size = 10)
+X_deploy = X[ridx]
+
+
+from bigtree import print_tree
+print_tree(emodel.flat_trees[0], attr_list=["values"])
+
+# Write with vectors
 # Write the template, change the deployment folder to avoid overwriting multiple ensembles
-eden_model.deploy(deployment_folder="eden-ensemble", target="gcc")
-# Now we can manually go inside the generated folder and run the Makefile of the
-# target architecture
-# N.B This step requires a working Pulpissimo/Gap8 toolchain or GCC for the "gcc"
-# folder.
+deploy_model(
+    ensemble=emodel,
+    target="default",
+    output_path="generated_tests",
+    input_data=X_deploy,
+    data_structure="arrays",
+)
+print(
+    "Expected outputs",
+    {f"InputIdx{i}" : (qclasses[ridx][i],qcounts[ridx][i]) for i in range(X_deploy.shape[0])}
+)
+

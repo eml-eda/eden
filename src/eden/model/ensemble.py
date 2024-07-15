@@ -46,7 +46,7 @@ class Ensemble:
 
     @property
     def leaf_length(self):
-        return self.flat_trees[0].leaves[0].values.shape[0]
+        return next(self.flat_trees[0].leaves).values.shape[0]
 
     @property
     def max_depth(self):
@@ -122,9 +122,9 @@ class Ensemble:
         Returns
         -------
         np.ndarray
-            The predictions with shape (n_samples, n_trees, n_classes)
+            The predictions with shape (n_samples, n_trees, leaf_shape)
         """
-        predictions = np.zeros((X.shape[0], self.n_trees, self.output_length))
+        predictions = np.zeros((X.shape[0], self.n_trees, self.leaf_length), dtype=next(self.flat_trees[0].leaves).values.dtype)
 
         for idx, tree in enumerate(self.flat_trees):
             for i_idx, x_in in enumerate(X):

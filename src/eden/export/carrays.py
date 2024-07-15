@@ -27,9 +27,10 @@ def ensemble_to_c_arrays(
             al[leaves_idx] = le.reshape(-1)
         # Leaves inside, but in the right
         elif ensemble.task == "classification_label":
-            classes = le.argmax(axis=-1)
-            cr = cr.astype(max(np.min_scalar_type(classes.max()), cr.dtype))
-            cr[leaves_idx] = classes
+            # Argmax has already been performed before
+            classes = le
+            cr = cr.astype(max(np.min_scalar_type(ensemble.n_trees), cr.dtype))
+            cr[leaves_idx] = classes.reshape(-1)
         # Leaves inside, binary classification case
         else:
             le_typed = le[:, 1].reshape(-1).astype(np.min_scalar_type(le.max()))

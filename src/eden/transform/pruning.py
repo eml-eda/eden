@@ -1,4 +1,5 @@
 from eden.model.ensemble import Ensemble
+import numpy as np
 from eden.model.node import Node
 from bigtree import preorder_iter, print_tree
 from copy import deepcopy
@@ -10,7 +11,7 @@ def prune_same_class_leaves(*, estimator):
     """
     assert estimator.task not in ["regression", "multiclass_classification_ovo"]
     pestimator = deepcopy(estimator)
-    for tree in pestimator.trees:
+    for idx, tree in enumerate(pestimator.trees):
         stop_flag = True
         while stop_flag:
             stop_flag = False
@@ -18,13 +19,25 @@ def prune_same_class_leaves(*, estimator):
                 if (
                     node.siblings[0].is_leaf
                     and node.values.argmax() == node.siblings[0].values.argmax()
+                    
                 ):
                     parent = node.parent
+                    zp = np.zeros_like(parent.values)
+                    zp[:, node.values.argmax()] =1
+                    parent.values = zp
                     parent.left = None
                     parent.right = None
                     stop_flag = True
                     break
+        # Cleanup
+        for node in preorder_iter(tree):
+            node.values = np.argmax(node.values).reshape(1,1).astype(np.min_scalar_type(node.values.shape))
 
+    # Change the estimator task
+    pestimator.task = "classification_label"
+    
+
+    # Swap the leaves witht their argmax
     return pestimator
 
 

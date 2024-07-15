@@ -22,62 +22,54 @@ Simple example showing how to:
 1. Benchmark the quantized model in python
 2. Try an adaptive approach
 
-Note that this example is not using the Eden exporter (EdenGarden class)
 """
 
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.datasets import load_iris
-from eden.optimization import quantize, quantize_alphas, get_output_range
+from eden.transform.quantization import (
+    quantize,
+    quantize_leaves,
+    quantize_post_training_alphas,
+    quantize_pre_training_alphas,
+)
 from eden.inference import predict_adaptive, score_margin
 from sklearn.metrics import accuracy_score
+from eden.frontend.sklearn.ensemble import parse_random_forest
 
 
 INPUT_BITS = 8
 OUTPUT_BITS = 8
 
 X, y = load_iris(return_X_y=True)
+X, _, _ = quantize(data=X, min_val=X.min(), max_val=X.max(), precision=INPUT_BITS)
 model = RandomForestClassifier(n_estimators=100, max_depth=4, random_state=0)
-# Quantization aware training
-X = quantize(data=X, min_val=X.min(), max_val=X.max(), bits=INPUT_BITS)
 model.fit(X, y)
 
-# (Optional) Quantize the thresholds (for QAT we just apply a ceil function)
-model = quantize_alphas(
-    estimator=model,
-    input_min_val=X.min(),
-    input_max_val=X.max(),
-    method="qat",
-    bits=INPUT_BITS,
+emodel = parse_random_forest(model=model)
+qemodel = quantize_leaves(estimator=emodel, precision=INPUT_BITS)
+
+
+qemodel = quantize_pre_training_alphas(
+    estimator=qemodel,
+    precision=INPUT_BITS,
+    min_val=X.min(),
+    max_val=X.max(),
 )
 
-# Output quantization (post-training) is less automatized, but still fast.
-# N.B It should be applied only on the ACCUMULATED probabilities
-# (not the mean probability) for RFs and on the output of the decision function for GBT.
-output_min, output_max = get_output_range(estimator=model)
-# We can obtain the raw logits for RFs in the following way:
-logits = np.asarray([tree.predict_proba(X) for tree in model.estimators_])
-qlogits = quantize(
-    data=logits,
-    min_val=output_min,
-    max_val=output_max,
-    bits=OUTPUT_BITS,
-    method="trunc",
-)
+qpredictions = qemodel.predict(X).transpose(1, 0, 2)
+qclasses = qpredictions.sum(axis=0).argmax(axis=-1)
 
-qpredictions = np.argmax(np.sum(qlogits, axis=0), axis=-1)
-
-# We get the original predictions for comparison.
 predictions = model.predict(X)
 print("FP-Accuracy", accuracy_score(y, predictions))
-print("Q-Accuracy", accuracy_score(y, qpredictions))
+print("Q-Accuracy", accuracy_score(y, qclasses))
 
 ###
 # Adaptive
 # We use again the quantized logits, but since we will use the aggregated metrics
 # we need first to accumulate them
 THRESHOLDS = np.asarray([0, 10, 20])
-acc_qlogits = np.cumsum(qlogits, axis=0)
+acc_qlogits = np.cumsum(qpredictions, axis=0)
 # Also aggregated_score_margin can be called directly on the NOT aggregated logits
 early_scores = score_margin(acc_qlogits)
 adaptive_predictions, classifiers_used = predict_adaptive(
