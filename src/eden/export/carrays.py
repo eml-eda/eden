@@ -57,9 +57,7 @@ def ensemble_to_c_arrays(
 
     # Cast to correct dtype
     features = features.astype(np.min_scalar_type(ensemble.input_length))
-    children_right = children_right.astype(
-        np.min_scalar_type(children_right.max())
-    )
+    children_right = children_right.astype(np.min_scalar_type(children_right.max()))
     roots = roots.astype(np.min_scalar_type(roots.max()))
 
     # Never change this order, half package depends on it
@@ -73,12 +71,8 @@ def tree_to_c_arrays(tree):
     preorder_nodes = list(preorder_iter(tree))
     alphas, features, children_right, values = (
         np.zeros(len(preorder_nodes), dtype=tree.alpha.dtype),
-        np.zeros(
-            len(preorder_nodes), dtype=np.min_scalar_type(tree.input_length)
-        ),
-        np.zeros(
-            len(preorder_nodes), dtype=np.min_scalar_type(2**tree.max_depth)
-        ),
+        np.zeros(len(preorder_nodes), dtype=np.min_scalar_type(tree.input_length)),
+        np.zeros(len(preorder_nodes), dtype=np.min_scalar_type(2**tree.max_depth)),
         np.zeros(
             (len(preorder_nodes), tree.values.shape[-1]),
             dtype=next(tree.leaves).values.dtype,

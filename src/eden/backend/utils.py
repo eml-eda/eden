@@ -13,7 +13,7 @@ def ctype_to_vtype(ctype: str):
     return vtype
 
 
-def nptype_to_ctype(*, dtype : np.dtype) -> str:
+def nptype_to_ctype(*, dtype: np.dtype) -> str:
     if "float" in dtype.name:
         return "float"
     elif dtype == np.uint16:
@@ -46,7 +46,9 @@ def to_node_struct(root_data, feature_idx_data, alpha_data, right_child_data):
             right_child_data[idx_start:idx_end],
         ):
             al = int(al) if al.is_integer() else al
-            node_str.append("{" + f".feature={f_idx}, .alpha={al}, .child_right={r_c}" + "}")
+            node_str.append(
+                "{" + f".feature={f_idx}, .alpha={al}, .child_right={r_c}" + "}"
+            )
     node_str = ",\n".join(node_str)
     return node_str
 

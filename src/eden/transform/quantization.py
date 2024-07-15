@@ -47,9 +47,7 @@ def quantize(
         data = np.round(data / scale + zero_point).astype(int)
     else:
         data = np.trunc(data / scale + zero_point).astype(int)
-    data = np.clip(a=data, a_min=qmin, a_max=qmax).astype(
-        np.min_scalar_type(qmax)
-    )
+    data = np.clip(a=data, a_min=qmin, a_max=qmax).astype(np.min_scalar_type(qmax))
     return data, scale, zero_point
 
 
@@ -146,7 +144,7 @@ def quantize_leaves(estimator, precision, aggreagate="sum"):
                 precision=precision,
                 method="trunc",
             )
-    
+
     qestimator.leaf_scale = scale
     qestimator.leaf_zero_point = zero_point
 

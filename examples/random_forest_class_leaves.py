@@ -33,8 +33,8 @@ from eden.transform.pruning import prune_same_class_leaves
 from eden.backend.deployment import deploy_model
 from eden.model.ensemble import Ensemble
 from scipy.stats import mode
-np.random.seed(0)
 
+np.random.seed(0)
 
 
 INPUT_BITS = 8
@@ -55,11 +55,11 @@ model = RandomForestClassifier(
 )
 model.fit(X_train, y_train)
 
-emodel : Ensemble = parse_random_forest(model=model)
+emodel: Ensemble = parse_random_forest(model=model)
 emodel = quantize_pre_training_alphas(
     estimator=emodel, precision=INPUT_BITS, min_val=X_min, max_val=X_max
 )
-emodel : Ensemble = prune_same_class_leaves(estimator=emodel)
+emodel: Ensemble = prune_same_class_leaves(estimator=emodel)
 
 qpredictions = emodel.predict(X).squeeze(-1)
 qmodes = mode(qpredictions, 1)
@@ -73,11 +73,12 @@ print("FP-Accuracy", accuracy_score(y, predictions))
 print("Q-Accuracy", accuracy_score(y, qclasses))
 
 # Take 10 inputs to deploy, randomly
-ridx = np.random.randint(low =0, high = y.shape[0], size = 10)
+ridx = np.random.randint(low=0, high=y.shape[0], size=10)
 X_deploy = X[ridx]
 
 
 from bigtree import print_tree
+
 print_tree(emodel.flat_trees[0], attr_list=["values"])
 
 # Write with vectors
@@ -91,6 +92,8 @@ deploy_model(
 )
 print(
     "Expected outputs",
-    {f"InputIdx{i}" : (qclasses[ridx][i],qcounts[ridx][i]) for i in range(X_deploy.shape[0])}
+    {
+        f"InputIdx{i}": (qclasses[ridx][i], qcounts[ridx][i])
+        for i in range(X_deploy.shape[0])
+    },
 )
-

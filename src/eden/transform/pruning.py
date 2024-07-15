@@ -19,11 +19,10 @@ def prune_same_class_leaves(*, estimator):
                 if (
                     node.siblings[0].is_leaf
                     and node.values.argmax() == node.siblings[0].values.argmax()
-                    
                 ):
                     parent = node.parent
                     zp = np.zeros_like(parent.values)
-                    zp[:, node.values.argmax()] =1
+                    zp[:, node.values.argmax()] = 1
                     parent.values = zp
                     parent.left = None
                     parent.right = None
@@ -31,11 +30,14 @@ def prune_same_class_leaves(*, estimator):
                     break
         # Cleanup
         for node in preorder_iter(tree):
-            node.values = np.argmax(node.values).reshape(1,1).astype(np.min_scalar_type(node.values.shape))
+            node.values = (
+                np.argmax(node.values)
+                .reshape(1, 1)
+                .astype(np.min_scalar_type(node.values.shape))
+            )
 
     # Change the estimator task
     pestimator.task = "classification_label"
-    
 
     # Swap the leaves witht their argmax
     return pestimator

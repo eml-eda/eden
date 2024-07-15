@@ -24,6 +24,10 @@ class Node(BinaryNode):
             else:
                 return self.right.predict(x)
 
+    @property
+    def n_leaves(self):
+        return len([*self.n_leaves])
+
     def export_to_arrays(self):
         # Inefficient, yet easy to program, a better way would be to make it recursive
         assert self.is_root, "Export starts only from the root node"
