@@ -33,14 +33,15 @@ from eden.transform.pruning import prune_same_class_leaves
 from eden.backend.deployment import deploy_model
 from eden.model.ensemble import Ensemble
 from scipy.stats import mode
+from bigtree import print_tree
 
 np.random.seed(0)
 
 
 INPUT_BITS = 8
 OUTPUT_BITS = 8  # This is ignored and computed depending on the #Classes
-N_TREES = 20
-DEPTH = 8
+N_TREES = 1
+DEPTH = 6
 
 
 X, y = load_iris(return_X_y=True)
@@ -76,12 +77,6 @@ print("Q-Accuracy", accuracy_score(y, qclasses))
 ridx = np.random.randint(low=0, high=y.shape[0], size=10)
 X_deploy = X[ridx]
 
-
-from bigtree import print_tree
-
-print_tree(emodel.flat_trees[0], attr_list=["values"])
-
-# Write with vectors
 # Write the template, change the deployment folder to avoid overwriting multiple ensembles
 deploy_model(
     ensemble=emodel,

@@ -56,7 +56,7 @@ def tree_to_vectors(tree: Node, max_depth: int, pad_to_perfect=True):
 
     # Padding node -> A node that always returns true, since it is padding :P
     # Requires <= jumps to work
-    if isinstance(alphas, np.integer):
+    if issubclass(alphas.dtype.type, np.integer):
         pad_val = np.iinfo(alphas.dtype).max
     else:
         pad_val = np.finfo(alphas.dtype).max
@@ -69,3 +69,4 @@ def tree_to_vectors(tree: Node, max_depth: int, pad_to_perfect=True):
             features[idx, idx_node] = node.feature
         leaves[idx] = leaf.values.reshape(-1)
     return features, alphas, leaves, addr_maps
+

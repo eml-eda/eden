@@ -27,6 +27,10 @@ class Node(BinaryNode):
     @property
     def n_leaves(self):
         return len([*self.n_leaves])
+    
+    @property
+    def n_nodes(self):
+        return len([*preorder_iter(self)])
 
     def export_to_arrays(self):
         # Inefficient, yet easy to program, a better way would be to make it recursive
