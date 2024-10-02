@@ -29,7 +29,8 @@ dependencies = [
   "scikit-learn",
   "bigtree",
   "mako",
-  "matplotlib"
+  "matplotlib",
+  "pandas"
 ]
 
 [project.optional-dependencies]

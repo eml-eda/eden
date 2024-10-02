@@ -17,7 +17,7 @@ def parse_tree(tree_df, column_names, input_length):
             if row.split_feature is not None
             else input_length
         )
-        alpha = np.float_(row.threshold) #if not np.isnan(row.threshold) else TREE_LEAF
+        alpha = np.float32(row.threshold) #if not np.isnan(row.threshold) else TREE_LEAF
         values_samples = None
         if parent_index is None:
             root = Node(
