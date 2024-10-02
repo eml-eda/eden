@@ -57,7 +57,7 @@ qemodel = quantize_pre_training_alphas(
     max_val=X.max(),
 )
 
-qpredictions = qemodel.predict(X).transpose(1, 0, 2)
+qpredictions = qemodel.predict_raw(X).transpose(1, 0, 2)
 qclasses = qpredictions.sum(axis=0).argmax(axis=-1)
 
 predictions = model.predict(X)

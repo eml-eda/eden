@@ -111,7 +111,7 @@ class Ensemble:
         min_val, max_val = min_max[:, 0].min(), min_max[:, 1].max()
         return min_val, max_val
 
-    def predict(self, X) -> np.ndarray:
+    def predict_raw(self, X) -> np.ndarray:
         """
         Recursive prediction function for the ensemble.
 
@@ -133,6 +133,23 @@ class Ensemble:
             for i_idx, x_in in enumerate(X):
                 predictions[i_idx, idx] = tree.predict(x_in)
         return predictions
+    
+    def predict(self, X) -> np.ndarray:
+        """ 
+        Recursive prediction function for the ensemble, with aggregation.
+        The function used to aggregated is self.aggregate_function
+        Parameters
+        ----------
+        X : np.ndarray
+            The input data
+        Returns
+        -------
+        np.ndarray
+            The predictions with shape (n_samples, output_length)
+        """
+
+        predictions = self.predict_raw(X)
+        return self.aggreagate_function(predictions)
 
     def get_memory_cost(self, data_structure="arrays"):
         assert data_structure in ["arrays", "struct"]

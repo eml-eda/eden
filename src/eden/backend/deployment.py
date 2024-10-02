@@ -293,5 +293,5 @@ if __name__ == "__main__":
     )
     # print((quantized.predict(iris_qdata).sum(axis=1)[:10] - quantized.leaf_zero_point) * quantized.leaf_scale)
     np.set_printoptions(suppress=True, formatter={"float_kind": "{:0.2f}".format})
-    print((quantized.predict(iris_qdata).sum(axis=1)[:10]))
+    print((quantized.predict_raw(iris_qdata).sum(axis=1)[:10]))
     print(quantized.leaf_scale, quantized.leaf_zero_point)

@@ -24,16 +24,15 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
 from eden.transform.quantization import (
     quantize,
-    quantize_leaves,
-    quantize_post_training_alphas,
     quantize_pre_training_alphas,
 )
 from eden.frontend.sklearn.ensemble import parse_random_forest
 from eden.transform.pruning import prune_same_class_leaves
-from eden.backend.deployment import deploy_model
 from eden.model.ensemble import Ensemble
 from scipy.stats import mode
-from bigtree import print_tree
+from eden.transform.padding import pad_to_depth
+from bigtree import tree_to_dot
+from eden.export.fvectors import extract_fvectors_ensemble
 
 np.random.seed(0)
 
@@ -44,51 +43,47 @@ N_TREES = 1
 DEPTH = 6
 
 
-X, y = load_iris(return_X_y=True)
-X_min, X_max = X.min(), X.max()
-X, _, _ = quantize(data=X, min_val=X.min(), max_val=X.max(), precision=INPUT_BITS)
-X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.2, stratify=y, random_state=0
-)
+def main():
+    # Eden related part
+    X, y = load_iris(return_X_y=True)
+    X_min, X_max = X.min(), X.max()
+    X, _, _ = quantize(data=X, min_val=X.min(), max_val=X.max(), precision=INPUT_BITS)
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, stratify=y, random_state=0
+    )
 
-model = RandomForestClassifier(
-    random_state=0, n_estimators=N_TREES, max_depth=DEPTH, min_samples_leaf=4
-)
-model.fit(X_train, y_train)
+    model = RandomForestClassifier(
+        random_state=0, n_estimators=N_TREES, max_depth=DEPTH, min_samples_leaf=4
+    )
+    model.fit(X_train, y_train)
 
-emodel: Ensemble = parse_random_forest(model=model)
-emodel = quantize_pre_training_alphas(
-    estimator=emodel, precision=INPUT_BITS, min_val=X_min, max_val=X_max
-)
-emodel: Ensemble = prune_same_class_leaves(estimator=emodel)
+    emodel: Ensemble = parse_random_forest(model=model)
+    emodel = quantize_pre_training_alphas(
+        estimator=emodel, precision=INPUT_BITS, min_val=X_min, max_val=X_max
+    )
 
-qpredictions = emodel.predict_raw(X).squeeze(-1)
-qmodes = mode(qpredictions, 1)
-qclasses = qmodes.mode
-qcounts = qmodes.count
-# Convert the votes in qpredictions in the final predictions
+    # Voting
+    emodel: Ensemble = prune_same_class_leaves(estimator=emodel)
+
+    # Padding - change here the pad depth
+    emodel = pad_to_depth(ensemble=emodel, target_depth=6)
+
+    # Plot the tree, for debugging
+    graph = tree_to_dot(emodel.flat_trees[0])
+    graph.write_png("tree.png")
+
+    # Change the C value from here
+    extract_fvectors_ensemble(emodel, c=2)
+
+    # CARE: the vectorization is not simulated
+    # Convert the votes in qpredictions in the final predictions
+    qpredictions = emodel.predict_raw(X).squeeze(-1)
+    qmodes = mode(qpredictions, 1)
+    qclasses = qmodes.mode
+
+    predictions = model.predict(X)
+    print("FP-Accuracy", accuracy_score(y, predictions))
+    print("Q-Accuracy", accuracy_score(y, qclasses))
 
 
-predictions = model.predict(X)
-print("FP-Accuracy", accuracy_score(y, predictions))
-print("Q-Accuracy", accuracy_score(y, qclasses))
-
-# Take 10 inputs to deploy, randomly
-ridx = np.random.randint(low=0, high=y.shape[0], size=10)
-X_deploy = X[ridx]
-
-# Write the template, change the deployment folder to avoid overwriting multiple ensembles
-deploy_model(
-    ensemble=emodel,
-    target="default",
-    output_path="generated_tests",
-    input_data=X_deploy,
-    data_structure="arrays",
-)
-print(
-    "Expected outputs",
-    {
-        f"InputIdx{i}": (qclasses[ridx][i], qcounts[ridx][i])
-        for i in range(X_deploy.shape[0])
-    },
-)
+main()

@@ -9,6 +9,7 @@ BUILD/
 compile_folder/
 compile_autogen/
 compile_folder*/
+generated_*/
 results/
 logs
 .vscode/
