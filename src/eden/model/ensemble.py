@@ -212,6 +212,26 @@ class Ensemble:
                 "features"
             ), access_cost.pop("alphas")
         return access_cost
+    
+    def remove_trees(self, idx : Union[int, List[int]]):
+        """
+        Prune one or more trees from the ensemble
+
+        Parameters
+        ----------
+        idx : Union[int, List[int]]
+            The index or list of indices to remove
+
+        Returns
+        -------
+        Ensemble
+            The ensemble without the trees
+        """
+        if isinstance(idx, int):
+            idx = [idx]
+        for i in sorted(idx, reverse=True):
+            self.trees.pop(i)
+        return self
 
     def __str__(self) -> str:
         return f"Ensemble of {self.n_trees} trees, input length {self.input_length}, output length {self.output_length}"
